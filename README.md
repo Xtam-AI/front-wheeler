@@ -1,6 +1,12 @@
 # front-wheeler
 
-Two toy experiments toward an arXiv note (target: Sept 17).
+**XTAM Research Labs** · research@xtam.ai
+
+How much backpropagation do you need? Two controlled experiments on removing
+the backprop signal along two axes — locality (supermask search with local
+wiring rules) and frequency (plateau-triggered full-BP bursts). Paper draft
+in `paper/`; all run logs and figures in `results/`. Licensed MIT; see
+`CITATION.cff` to cite.
 
 ## Exp 1 — learning is wiring, never updating
 Frozen random MLP on MNIST; only a binary mask over weights is learned.
