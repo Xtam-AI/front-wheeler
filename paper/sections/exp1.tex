@@ -29,8 +29,19 @@ Rule & Signal to hidden layers & MNIST & CIFAR-10 \\
 \end{tabular}
 \end{table}
 
-\paragraph{Results.} Table~\ref{tab:exp1} shows a graded degradation along
-the locality axis. Three observations. \textbf{(i) Wiring matches, then
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{exp1_locality}
+\caption{Learning curves along the locality axis (mean over 3 seeds; bands
+$\pm 1$ std). Colored curves learn only the mask over frozen random weights;
+gray lines mark the final accuracy of the controls. The vector-signal rules
+(\ep{}, \dfa{}) converge near or above dense training; the scalar-signal rule
+(\rmhebb{}) learns slowly and noisily.}
+\label{fig:exp1curves}
+\end{figure}
+
+\paragraph{Results.} Table~\ref{tab:exp1} and Figure~\ref{fig:exp1curves}
+show a graded degradation along the locality axis. Three observations. \textbf{(i) Wiring matches, then
 beats, weights.} On MNIST, gradient mask search is within half a point of
 dense training. On CIFAR-10---where a dense MLP overfits---mask search over
 the same frozen random weights \emph{outperforms} dense training by
@@ -48,11 +59,22 @@ vector-signal rule, with high seed variance. In this setting the information
 threshold for effective connectivity search lies between a broadcast vector
 and a broadcast scalar.
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.5\textwidth]{exp1_sparsity}
+\caption{Mask-budget robustness on MNIST: final accuracy vs.\ fraction of
+connections kept (mean $\pm$ std, 3 seeds). Both search rules degrade
+gracefully; at $10\%$ kept, the local rule still matches the trained-readout
+control.}
+\label{fig:sparsity}
+\end{figure}
+
 \paragraph{Sparsity.} Sweeping the kept fraction over
-$\{70\%, 50\%, 30\%, 10\%\}$ on MNIST changes \ep{} accuracy only from
-$98.2$ to $96.9$ and \dfa{} from $96.9$ to $94.8$: even keeping one tenth of
-random connections, the local rule still beats the trained readout on frozen
-features. Connectivity search is robust to the mask budget.
+$\{70\%, 50\%, 30\%, 10\%\}$ on MNIST (Figure~\ref{fig:sparsity}) changes
+\ep{} accuracy only from $98.2$ to $96.9$ and \dfa{} from $96.9$ to $94.8$:
+even keeping one tenth of random connections, the local rule still beats the
+trained readout on frozen features. Connectivity search is robust to the mask
+budget.
 
 \subsection{Two failure modes worth documenting}
 \label{sec:exp1-stability}

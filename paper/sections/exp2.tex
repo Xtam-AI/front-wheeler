@@ -57,9 +57,21 @@ Schedule & Budget & MNIST & CIFAR-10 \\
 \end{tabular}
 \end{table}
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{exp2_pareto}
+\caption{Accuracy vs.\ full-backprop budget (log scale; mean $\pm$ std,
+3 seeds). Fixed schedules (\textsc{periodic}-$N$) and one-switch \lpft{}
+trace nearly identical Pareto curves; the adaptive schedules (\fw{}, and the
+\bcd{} ablation sharing its trigger) sit above both in the scarce-budget
+regime, by margins that grow from MNIST to CIFAR-10. Gray lines anchor the
+always-full and never-full extremes.}
+\label{fig:pareto}
+\end{figure}
+
 \paragraph{Adaptive beats fixed and one-switch at matched budget.}
-Table~\ref{tab:exp2} compares schedules at the operating point \fw{} selects
-on its own (${\sim}4\%$ full steps). \fw{} beats the matched periodic
+Table~\ref{tab:exp2} and Figure~\ref{fig:pareto} compare schedules at the
+operating point \fw{} selects on its own (${\sim}4\%$ full steps). \fw{} beats the matched periodic
 schedule by $+1.5$ (MNIST) and $+5.1$ (CIFAR-10) points, and beats one-switch
 \lpft{} by $+2.0$ and $+6.1$. On both datasets \fw{} at $4\%$ budget also
 beats periodic and \lpft{} at $10\%$ budget. The margins \emph{grow} with
