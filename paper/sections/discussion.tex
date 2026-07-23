@@ -8,11 +8,13 @@ synapse may know; the answer is that connectivity search survives the loss of
 weight transport and the chained backward (\dfa{}), and fails gracefully but
 substantially when compressed to a scalar (\rmhebb{}). Axis~2 fixes
 \emph{what} (exact gradients) and varies \emph{when} depth is paid for; the
-answer is that ${\sim}4\%$ of steps suffice if---and, at low budgets, only
-if---their placement is chosen adaptively. In both cases the interesting
-quantity is not the best achievable accuracy but the \emph{shape of the
-degradation}: graceful along locality until the vector-to-scalar cliff,
-graceful along frequency provided the schedule is closed-loop.
+answer is that ${\sim}4\%$ of steps, placed adaptively, recover roughly
+two-thirds of the accuracy gap between never and always paying for
+depth---and that among the schedules we tested at that budget, only the
+adaptive ones do. In both cases the interesting quantity is not the best
+achievable accuracy but the \emph{shape of the degradation}: graceful along
+locality until the vector-to-scalar cliff, graceful along frequency provided
+the schedule is closed-loop.
 
 \paragraph{What we do not claim.} All experiments use MLPs on MNIST and
 CIFAR-10 with three seeds; absolute accuracies are far from competitive, by
@@ -47,10 +49,11 @@ per-class scalars) to locate the threshold precisely.
 \section{Conclusion}
 Random networks already contain their solutions; finding them does not
 require backpropagation's full machinery---an error broadcast suffices---but
-it does require more than a scalar. And when exact gradients are available,
-most steps do not need them: a plateau-triggered controller with backoff
-spends $4\%$ of the depth budget for $94$--$97\%$ of the benefit, and beats
-every fixed alternative we tested at that budget. Both results argue that
+it does require more than the scalar-modulated rule we could stabilize. And
+when exact gradients are available, most steps do not need them: a
+plateau-triggered controller with backoff spends $4\%$ of the depth budget to
+recover about two-thirds of the accuracy gap between never and always paying
+for it, and beats every fixed alternative we tested at that budget. Both results argue that
 credit assignment is best understood as a budgeted resource with structure in
 \emph{where} and \emph{when} it is spent, not a fixed per-step cost.
 

@@ -71,14 +71,19 @@ always-full and never-full extremes.}
 
 \paragraph{Adaptive beats fixed and one-switch at matched budget.}
 Table~\ref{tab:exp2} and Figure~\ref{fig:pareto} compare schedules at the
-operating point \fw{} selects on its own (${\sim}4\%$ full steps). \fw{} beats the matched periodic
-schedule by $+1.5$ (MNIST) and $+5.1$ (CIFAR-10) points, and beats one-switch
-\lpft{} by $+2.0$ and $+6.1$. On both datasets \fw{} at $4\%$ budget also
-beats periodic and \lpft{} at $10\%$ budget. The margins \emph{grow} with
-task difficulty: the harder the problem, the more it matters \emph{when} full
-credit assignment is spent, not merely how much. \fw{} is robust to its
-threshold ($\tau$ varied $10\times$ moves accuracy by ${<}0.3$ points), and
-concedes $1.3$ (MNIST) and $3.4$ (CIFAR-10) points to always-full BP. At
+operating point \fw{} selects on its own (${\sim}4\%$ full steps). At its
+best threshold, \fw{} beats the matched periodic schedule by $+1.5$ (MNIST)
+and $+5.1$ (CIFAR-10) points, and beats one-switch \lpft{} by $+2.0$ and
+$+6.1$; the comparison does not hinge on threshold selection, since the
+\emph{worst} $\tau$ still wins by $+0.9$ and $+3.6$ against the strongest
+matched fixed baseline. \fw{} at $4\%$ budget also beats periodic and
+\lpft{} at $10\%$ budget on CIFAR-10 ($+1.8$ and $+2.0$), and edges them on
+MNIST ($+0.5$ and $+0.4$, comparable to the seed spread). The margins
+\emph{grow} with task difficulty: the harder the problem, the more it
+matters \emph{when} full credit assignment is spent, not merely how much.
+\fw{} shows no tuning cliff ($\tau$ varied $10\times$ moves accuracy by at
+most $0.5$ / $0.9$ points on MNIST / CIFAR-10), and concedes $1.3$ (MNIST)
+and $3.3$ (CIFAR-10) points to always-full BP. At
 generous budgets the picture reverses in an instructive way: with $50\%$ full
 steps, \lpft{} is the best schedule on both datasets ($98.0\%$ / $54.2\%$),
 consistent with its design regime \citep{kumar2022finetuning}. Adaptivity
@@ -92,9 +97,9 @@ intact; joint bursts add a modest gain only on the harder task. Note,
 however, that \bcd{} bursts cannot be made cheap (Section~\ref{sec:framework}):
 only the nested scheme converts its cheap phase into compute savings.
 
-\paragraph{Isolated full steps are dangerous.} With periods $N \ge 10$ and no
-gradient clipping, interleaved training reliably collapsed to chance within
-the first epoch: the front-trained, increasingly confident head
+\paragraph{Isolated full steps are dangerous.} Without gradient clipping,
+periodic interleaving collapsed to chance within the first epoch on all three
+seeds at $N \in \{20, 50\}$, and on one of three seeds at $N{=}10$: the front-trained, increasingly confident head
 back-propagates error into a trunk it has drifted away from, with trunk
 gradient norms growing to ${\sim}20\times$ their initial scale before the
 collapse, driving hidden units dead. \fw{}'s \emph{consecutive} bursts partly
@@ -112,6 +117,8 @@ ${\sim}20$s (CIFAR-10) per run on an RTX PRO 6000. Isolated per-step timing
 confirms the proxy translates once GEMMs dominate: a front step is
 $1.4\times$ faster than a full step at width 512/depth 4 (batch 128), rising
 to $2.5$--$2.7\times$ at widths 4096--8192 and depths 8--16 (batches
-512--1024), approaching the $(F + 2F)/(F + 2F\cdot 2/D)$ asymptote for
-forward cost $F$. Since \fw{} takes ${\sim}96\%$ front steps, its amortized
-step cost approaches the front-step cost at scale.
+512--1024), approaching the ${\sim}3\times$ limit implied by a backward pass
+costing ${\sim}2\times$ the forward; the measured ratios slightly exceed the
+GEMM-only prediction because the trunk's no-grad forward also skips
+activation bookkeeping. Since \fw{} takes ${\sim}96\%$ front steps, its
+amortized step cost approaches the front-step cost at scale.

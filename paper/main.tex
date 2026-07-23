@@ -51,16 +51,18 @@ rule). \textbf{Axis 2 (frequency):} we train normally but replace most
 backpropagation steps with cheap updates of the last hidden layer and readout
 only, triggering full-depth bursts by a plateau detector with exponential
 backoff (\fw{}, ``front wheeler''). On MNIST and CIFAR-10 we find:
-(i) gradient-based mask search over frozen random weights matches---and on
-CIFAR-10 \emph{exceeds}---dense weight training ($55.9\%$ vs.\ $53.0\%$);
-(ii) an error-vector broadcast is sufficient for local mask search
-(within $1$--$3$ points of the gradient upper bound), while a global scalar is
-not ($26$--$52\%$), locating the information threshold between a vector and a
-scalar; (iii) plateau-triggered bursts using ${\sim}4\%$ full-backprop steps
-beat periodic schedules and one-switch linear-probe-then-fine-tune at matched
+(i) gradient-based mask search over frozen random weights comes within half a
+point of dense weight training on MNIST and \emph{exceeds} it on CIFAR-10
+($55.9\%$ vs.\ $53.0\%$); (ii) an error-vector broadcast suffices for local
+mask search (within $1$--$3$ points of the gradient upper bound), while the
+scalar-modulated Hebbian rule we stabilized does not ($26$--$52\%$), placing
+the information threshold---in this setting---between a vector and a scalar;
+(iii) plateau-triggered bursts using ${\sim}4\%$ full-backprop steps beat
+periodic schedules and one-switch linear-probe-then-fine-tune at matched
 budget, by margins that \emph{grow} with task difficulty ($+1.5$ to
-$+6.1$ points); and (iv) an ablation shows the closed-loop trigger, not the
-choice of parameter block, carries the benefit. We also document two failure
+$+6.1$ points at the best threshold; the worst still wins by $+0.9$ to
+$+3.6$); and (iv) an ablation shows the closed-loop trigger, not the choice
+of parameter block, carries most of the benefit. We also document two failure
 modes---a sign subtlety in straight-through mask gradients and a dead-ReLU
 collapse caused by isolated full-backprop steps---that we believe are useful
 to practitioners. All experiments are small-scale by design; we characterize,
