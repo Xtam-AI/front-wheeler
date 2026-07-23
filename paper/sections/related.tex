@@ -5,13 +5,26 @@ followed by fine-tuning (\lpft{}) \citep{kumar2022finetuning} is the
 one-switch special case of \fw{}, motivated in the transfer setting by
 feature distortion: a fresh head sends large, misaligned gradients into good
 pretrained features. Our stability findings are the from-scratch, per-step
-version of the same mechanism. FreezeOut \citep{brock2017freezeout} anneals
-early layers out of training on a fixed schedule; decoupled training
-replaces the global backward pass with learned local surrogates
+version of the same mechanism. Closest to \fw{} is the adaptive
+layer-freezing line: FreezeOut \citep{brock2017freezeout} anneals early
+layers out on a fixed schedule, while AutoFreeze \citep{liu2021autofreeze},
+Egeria \citep{wang2023egeria}, and SmartFRZ \citep{li2023smartfrz} freeze
+layers adaptively from convergence signals (gradient norms, plasticity,
+learned predictors). These are \emph{ratchets}: layers freeze bottom-up,
+progressively, and (near-)permanently, saving on the order of
+$20$--$50\%$ of training FLOPs. \fw{} inverts the default and changes the
+structure: the trunk is frozen from the start, deep credit assignment
+happens in \emph{temporary, revocable bursts}, and the operating point is a
+$4$--$6\%$ full-depth budget rather than a moderate discount. Our
+isolated-step toxicity result is complementary to this literature: it
+explains why the ratchet structure is safe (frozen layers are never
+perturbed by sporadic deep steps) and why naive interleaving---the natural
+first alternative to a ratchet---is not. Decoupled training replaces the
+global backward pass with learned local surrogates
 \citep{jaderberg2017decoupled} or greedy layer-wise objectives
-\citep{belilovsky2019greedy}. All of these fix the schedule in advance;
-\fw{}'s trigger is closed-loop, and its backoff addresses a failure mode
-(unproductive expensive phases) that fixed schedules cannot express. Block
+\citep{belilovsky2019greedy}. Fixed schedules and ratchets alike cannot
+express \fw{}'s backoff, which handles unproductive expensive phases by
+raising the evidence bar for the next one. Block
 coordinate descent with greedy (Gauss--Southwell) selection
 \citep{nutini2015coordinate} is the classical frame for adaptive block
 updates; its theory assumes uniform per-block costs, whereas the cheap block

@@ -50,8 +50,20 @@ class MLP(nn.Module):
         h = F.relu(self.linears[-2](x))
         return self.linears[-1](h)
 
+    def forward_partial(self, x, n_frozen):
+        """Ratchet baseline: first n_frozen matrices frozen (no_grad)."""
+        with torch.no_grad():
+            for lin in self.linears[:n_frozen]:
+                x = F.relu(lin(x))
+        x = x.detach()
+        for i in range(n_frozen, len(self.linears)):
+            x = self.linears[i](x)
+            if i < len(self.linears) - 1:
+                x = F.relu(x)
+        return x
 
-def backward_flops(dims, mode: str):
+
+def backward_flops(dims, mode, n_frozen=None):
     """Rough backward cost in MACs per sample (~2 GEMMs per weight matrix:
     activation-grad + weight-grad). trunk-only still pays the activation-grad
     GEMM through the head matrices — BCD can't truncate depth."""
@@ -62,6 +74,8 @@ def backward_flops(dims, mode: str):
         return sum(2 * a * b for a, b in mats)
     if mode == "trunk":
         return sum(2 * a * b for a, b in mats[:-2]) + sum(a * b for a, b in mats[-2:])
+    if mode == "partial":
+        return sum(2 * a * b for a, b in mats[n_frozen:])
     raise ValueError(mode)
 
 
@@ -93,10 +107,12 @@ def run(args):
 
     head_params = list(model.linears[-2].parameters()) + list(model.linears[-1].parameters())
 
-    def do_step(x, y, mode: str):
+    def do_step(x, y, mode, n_frozen=None):
         nonlocal full_steps, bp_flops, ema
         if mode == "front":
             logits = model.forward_split(x)
+        elif mode == "partial":
+            logits = model.forward_partial(x, n_frozen)
         else:
             logits = model(x)
         loss = F.cross_entropy(logits, y)
@@ -109,8 +125,8 @@ def run(args):
         # unclipped + momentum this dead-ReLUs the net at period >= 10
         torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip)
         opt.step()
-        full_steps += int(mode != "front")
-        bp_flops += backward_flops(dims, mode) * x.shape[0]
+        full_steps += int(mode == "full" or (mode == "partial" and n_frozen == 0))
+        bp_flops += backward_flops(dims, mode, n_frozen) * x.shape[0]
         l = loss.item()
         ema = l if ema is None else 0.98 * ema + 0.02 * l
         return l
@@ -131,6 +147,12 @@ def run(args):
             elif args.schedule == "lpft":
                 # linear-probe-then-finetune: one switch, front -> full
                 mode = "front" if step < switch_step else "full"
+            elif args.schedule == "ratchet":
+                # progressive bottom-up freezing (AutoFreeze/Egeria-style
+                # fixed ratchet): all-but-front frozen by ratchet_by * T
+                n_freezable = len(model.linears) - 2
+                frac = min(1.0, step / max(1, int(args.ratchet_by * total_steps)))
+                mode, nf = "partial", int(n_freezable * frac)
             else:  # fw / bcd: adaptive with burst backoff
                 if burst_left > 0:
                     mode = burst_mode
@@ -159,7 +181,7 @@ def run(args):
                                 mode = burst_mode
                                 burst_left -= 1
                         ema_at_check = ema
-            do_step(x, y, mode)
+            do_step(x, y, mode, nf if args.schedule == "ratchet" else None)
             step += 1
         acc, tloss = evaluate(model, test_loader, device)
         log.log(epoch=epoch, step=step, full_steps=full_steps, bp_flops=bp_flops,
@@ -172,7 +194,10 @@ def run(args):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--schedule", required=True,
-                   choices=["full", "front", "periodic", "fw", "lpft", "bcd"])
+                   choices=["full", "front", "periodic", "fw", "lpft", "bcd",
+                            "ratchet"])
+    p.add_argument("--ratchet-by", type=float, default=0.3,
+                   help="ratchet: fraction of training by which all-but-front is frozen")
     p.add_argument("--switch-frac", type=float, default=0.9,
                    help="lpft: fraction of training spent in the probe phase")
     p.add_argument("--seed", type=int, default=0)

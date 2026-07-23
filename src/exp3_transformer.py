@@ -72,6 +72,20 @@ class CharGPT(nn.Module):
             x = self.trunk(idx)
         return self.front(x.detach())
 
+    def forward_ratchet(self, idx, n_frozen):
+        """First n_frozen blocks (and, if any, the embeddings) frozen."""
+        if n_frozen == 0:
+            return self.forward(idx)
+        with torch.no_grad():
+            pos = torch.arange(idx.shape[1], device=idx.device)
+            x = self.emb_drop(self.wte(idx) + self.wpe(pos))
+            for b in self.blocks[:n_frozen]:
+                x = b(x)
+        x = x.detach()
+        for b in self.blocks[n_frozen:]:
+            x = b(x)
+        return self.head(self.ln_f(x))
+
 
 # ---------------------------------------------------------------- data
 
@@ -110,7 +124,7 @@ def val_loss(model, vdata, bs, ctx, iters=20):
 
 # ---------------------------------------------------------------- cost model
 
-def bwd_macs_per_token(d, vocab, layers, mode):
+def bwd_macs_per_token(d, vocab, layers, mode, n_frozen=None):
     """Weight-GEMM backward MACs per token (2 GEMMs per weight matrix);
     attention-score terms omitted uniformly across modes."""
     block = 12 * d * d          # qkv 3d^2 + proj d^2 + mlp 8d^2
@@ -121,6 +135,8 @@ def bwd_macs_per_token(d, vocab, layers, mode):
         return 2 * (layers * block + head)
     if mode == "trunk":         # activation grads still traverse the front
         return 2 * (layers - 1) * block + (block + head)
+    if mode == "ratchet":
+        return 2 * ((layers - n_frozen) * block + head)
     raise ValueError(mode)
 
 
@@ -160,6 +176,7 @@ def run(args):
 
     switch_step = int(args.switch_frac * args.steps)
     burst_mode = "trunk" if args.schedule == "bcd" else "full"
+    nf = 0
     prev_mode = "front"
     steps_into_episode = 0
     full_steps = 0
@@ -180,6 +197,10 @@ def run(args):
             mode = "full" if step % args.period == 0 else "front"
         elif args.schedule == "lpft":
             mode = "front" if step < switch_step else "full"
+        elif args.schedule == "ratchet":
+            n_freezable = args.layers - 1
+            frac = min(1.0, step / max(1, int(args.ratchet_by * args.steps)))
+            mode, nf = "ratchet", int(n_freezable * frac)
         else:  # fw / bcd
             if burst_left > 0:
                 mode = burst_mode
@@ -204,7 +225,12 @@ def run(args):
                     ema_at_check = ema
 
         x, y = get_batch(train, args.batch_size, args.ctx, gen)
-        logits = model(x) if mode != "front" else model.forward_split(x)
+        if mode == "front":
+            logits = model.forward_split(x)
+        elif mode == "ratchet":
+            logits = model.forward_ratchet(x, nf)
+        else:
+            logits = model(x)
         loss = F.cross_entropy(logits.flatten(0, 1), y.flatten())
         for p in model.parameters():
             p.grad = None
@@ -236,8 +262,9 @@ def run(args):
             opt.step()
         sched.step()
         prev_mode = mode
-        full_steps += int(mode != "front")
-        bp_flops += (bwd_macs_per_token(args.dmodel, vocab, args.layers, mode)
+        full_steps += int(mode == "full" or (mode == "ratchet" and nf == 0))
+        bp_flops += (bwd_macs_per_token(args.dmodel, vocab, args.layers, mode,
+                                        nf if mode == "ratchet" else None)
                      * args.batch_size * args.ctx)
         l = loss.item()
         ema = l if ema is None else 0.98 * ema + 0.02 * l
@@ -256,7 +283,10 @@ def run(args):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--schedule", required=True,
-                   choices=["full", "front", "periodic", "fw", "lpft", "bcd"])
+                   choices=["full", "front", "periodic", "fw", "lpft", "bcd",
+                            "ratchet"])
+    p.add_argument("--ratchet-by", type=float, default=0.3,
+                   help="ratchet: fraction of training by which all-but-front is frozen")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--steps", type=int, default=5000)
     p.add_argument("--lr", type=float, default=3e-4)
