@@ -1,0 +1,63 @@
+\section{Setup and cost model}
+\label{sec:framework}
+
+\paragraph{Notation.} Let $f(x) = \mathrm{head}(\mathrm{trunk}(x;\tht);\thh)$
+be an MLP of depth $D{+}1$ (weight matrices $W_1,\dots,W_{D+1}$ with ReLU
+between), where $\thh = \{W_D, W_{D+1}\}$ collects the last hidden layer and
+the output projection (the \emph{front}) and $\tht$ the rest (the
+\emph{trunk}). Training minimizes the cross-entropy $L(\thh,\tht)$.
+
+\paragraph{Backward cost.} We count backward multiply--accumulates per
+weight matrix as ${\sim}2\,a b$ for a matrix of shape $a\times b$ (one GEMM
+for the activation gradient, one for the weight gradient). A \emph{full} step
+back-propagates through all $D{+}1$ matrices. A \emph{front} step detaches
+the trunk output and back-propagates through $W_D, W_{D+1}$ only, at
+$2(ab)_{D}+2(ab)_{D+1}$---a factor ${\sim}(D{+}1)/2$ cheaper for uniform
+widths. A \emph{trunk-only} step (used by the \bcd{} ablation) must still
+compute activation gradients \emph{through} the head to reach the trunk: it
+saves only the head's weight-gradient GEMMs and therefore costs nearly as
+much as a full step. This asymmetry is the crux: depth truncation is
+available only to the top block, so partitioned block-coordinate schemes
+cannot convert block restriction into compute savings, whereas the nested
+scheme (front vs.\ everything) can.
+
+\paragraph{Axis 1: locality.} With all weights frozen at initialization, each
+connection $(i{\leftarrow}j)$ in layer $\ell$ carries a score $s^{\ell}_{ij}$;
+the forward pass uses the binary mask keeping the top-$k$ fraction of scores
+by magnitude within each layer \citep{ramanujan2020whats}. The rules we
+compare differ only in the information used to update $s$:
+\begin{itemize}
+  \item \ep{}: straight-through gradient of the loss with respect to $s$
+  (full backpropagation on scores); the known upper bound.
+  \item \dfa{}: the layer's error signal is $\delta_\ell = (B_\ell\, e)\odot
+  \mathbb{1}[z_\ell > 0]$ with $e$ the output error and $B_\ell$ a fixed
+  random matrix; the score update is $\Delta s^{\ell}_{ij} \propto
+  -\,\delta_{\ell,i}\, x_{\ell,j}\, w^{\ell}_{ij}\,
+  \operatorname{sign}(s^{\ell}_{ij})$. No weight transport, no chained
+  backward pass; all factors are local to the synapse given the broadcast
+  $\delta_\ell$.
+  \item \rmhebb{}: hidden layers receive only a per-sample scalar
+  $m = \bar r - \ell(x,y)$ (negative loss against a running baseline).
+  The update is $\Delta s^{\ell}_{ij} \propto m\,\hat a_{\ell,i}\,
+  \hat x_{\ell,j}\, w^{\ell}_{ij}\, \operatorname{sign}(s^{\ell}_{ij})$ with
+  batch-centered activities $\hat a,\hat x$; the readout uses its locally
+  available exact delta rule. Updates are RMS-normalized per layer
+  (Section~\ref{sec:exp1-stability}).
+\end{itemize}
+
+\paragraph{Axis 2: frequency.} Training chooses per step between a front step
+and a full step; the budget is the fraction of full-depth steps. The greedy,
+cost-normalized rule for this choice would take front steps while
+\begin{equation}
+\frac{\|P\nabla L\|^2}{c_{\mathrm{front}}} \;\ge\;
+\frac{\|\nabla L\|^2}{c_{\mathrm{full}}},
+\label{eq:greedy}
+\end{equation}
+where $P$ projects onto the front coordinates---a cost-aware
+Gauss--Southwell rule \citep{nutini2015coordinate} over \emph{nested} blocks.
+Neither side of \eqref{eq:greedy} is free to observe: the left is estimated
+by realized front-phase loss improvement, while the right requires paying
+$c_{\mathrm{full}}$. \fw{} (Algorithm~\ref{alg:fw}) therefore treats each
+burst as both a progress step and a \emph{measurement}: an unproductive burst
+reveals that the plateau is global, and exponential backoff raises the
+evidence threshold for the next alarm.

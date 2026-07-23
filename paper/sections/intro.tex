@@ -1,0 +1,79 @@
+\section{Introduction}
+
+Backpropagation (BP) gives every parameter, at every step, an error signal
+that is globally informed: it reflects the loss, the targets, and the state of
+every layer above. This is expensive in compute (a full backward pass costs
+roughly twice the forward pass), in memory (activations must be stored to
+full depth), and in biological plausibility (exact weight transport and a
+global synchronized backward phase have no accepted neural analogue). A long
+line of work attacks each cost separately. We instead ask a deliberately
+simple question: \emph{along which axes, and by how much, can the BP signal be
+degraded before learning breaks?}
+
+We study two independent axes of degradation in small, fully controlled
+settings.
+
+\paragraph{Axis 1: locality of the learning signal (what each synapse may
+know).} Supermask results show that a randomly weighted, sufficiently wide
+network already contains subnetworks that solve the task; learning can be
+reduced to \emph{connectivity search}, with weights never updated
+\citep{ramanujan2020whats, zhou2019deconstructing, malach2020proving}. But the
+known search procedure (edge-popup) uses full backpropagation on mask scores,
+so the demonstration that ``learning is wiring'' still smuggles in a global
+gradient. We hold the setting fixed---frozen random MLP, learnable binary
+mask---and vary only the information available to the mask update rule:
+(a)~the full gradient (\ep{}, the upper bound), (b)~a fixed random projection
+of the output error vector delivered directly to each layer
+(\dfa{} \citep{nokland2016direct}, applied here to mask scores rather than
+weights), and (c)~a single global scalar per sample modulating a Hebbian
+eligibility trace (\rmhebb{}, a three-factor rule
+\citep{fremaux2016neuromodulated, williams1992simple}).
+
+\paragraph{Axis 2: frequency of deep credit assignment (when the network pays
+for depth).} Late layers can be updated by backpropagating through only the
+final two weight matrices; the trunk below is touched only by full-depth
+steps. We propose \fw{} (\emph{front wheeler}): run cheap last-two-layer
+updates by default, and fire a \emph{burst} of full-BP steps only when a loss
+plateau indicates the cheap subspace is exhausted. An exponential backoff
+handles the ``boy who cried wolf'' failure: if a burst itself yields no
+improvement, the plateau is global rather than the front's fault, and the
+evidence threshold for the next alarm is raised.
+
+\paragraph{Contributions.} On MNIST \citep{lecun1998gradient} and CIFAR-10
+\citep{krizhevsky2009learning}, with MLPs and three seeds throughout:
+\begin{enumerate}
+  \item \textbf{Wiring vs.\ weights.} Gradient mask search over frozen random
+  weights matches dense training on MNIST ($98.2\%$ vs.\ $98.7\%$) and
+  \emph{beats} it on CIFAR-10 ($55.9\%$ vs.\ $53.0\%$), where dense MLP
+  training overfits (Table~\ref{tab:exp1}).
+  \item \textbf{An information threshold for local wiring rules.} A random
+  projection of the error \emph{vector} suffices: \dfa{} mask search reaches
+  within $1.3$--$2.6$ points of \ep{} and matches dense weight training on
+  CIFAR-10. A global \emph{scalar} does not suffice: \rmhebb{} learns
+  ($2.6$--$5\times$ chance) but plateaus far below all vector-signal rules.
+  The threshold for effective wiring search sits between a broadcast vector
+  and a broadcast scalar.
+  \item \textbf{Adaptive beats scheduled deep credit assignment.} At a matched
+  budget of ${\sim}4$--$5\%$ full-BP steps, \fw{} beats the best periodic
+  schedule by $+1.5$ (MNIST) and $+5.1$ (CIFAR-10) points, and beats
+  one-switch linear-probe-then-fine-tune \citep{kumar2022finetuning} by
+  $+2.0$ and $+6.1$ points respectively (Table~\ref{tab:exp2}). The margins
+  grow with task difficulty. A block-coordinate ablation (\bcd{}: bursts
+  update the trunk only) shows the closed-loop trigger, not the block
+  structure, carries most of the benefit.
+  \item \textbf{Two documented failure modes.} (a)~Selecting mask entries by
+  $|s|$ while passing straight-through gradients to $s$ silently drops a
+  $\operatorname{sign}(s)$ factor and reduces learning to chance.
+  (b)~\emph{Isolated} full-BP steps interleaved with front training collapse
+  the network: the front-trained, confident head back-propagates error
+  signals into the stale trunk that we measure at ${\sim}20\times$ the
+  head-gradient norm, driving dead-ReLU collapse unless gradients are
+  clipped. The latter is an independent, from-scratch manifestation of the
+  feature-distortion mechanism that motivates \lpft{}
+  \citep{kumar2022finetuning}.
+\end{enumerate}
+
+We emphasize scope: all results are on small MLPs and standard image
+classification toys. The contribution is a controlled characterization of two
+axes of BP removal---not a claim about state-of-the-art training. Code and
+all run logs are released.

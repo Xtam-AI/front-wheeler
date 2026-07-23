@@ -1,0 +1,42 @@
+\section{Related work}
+
+\paragraph{Supermasks and the lottery ticket hypothesis.} \citet{frankle2019lottery}
+showed that dense networks contain sparse subnetworks trainable in isolation;
+\citet{zhou2019deconstructing} observed that a mask alone---applied to
+\emph{untrained} weights---already performs well, and \citet{ramanujan2020whats}
+made this practical with edge-popup, finding subnetworks of random networks
+that match trained accuracy. \citet{malach2020proving} and
+\citet{pensia2020optimal} proved that sufficiently overparameterized random
+networks contain such subnetworks with high probability. \citet{gaier2019weight}
+demonstrated architectures that perform without weight training. All of this
+establishes that the \emph{target} of connectivity search exists; the search
+itself, however, has been gradient-based. Our Axis~1 asks what happens when the
+search rule is restricted to local information.
+
+\paragraph{Local learning rules.} Feedback alignment \citep{lillicrap2016random}
+replaces the transposed forward weights in the backward pass with fixed random
+matrices; direct feedback alignment \citep{nokland2016direct} broadcasts the
+output error directly to every hidden layer. Three-factor rules combine a
+Hebbian eligibility trace with a global neuromodulatory scalar
+\citep{fremaux2016neuromodulated}, the scalar case being REINFORCE-style
+learning \citep{williams1992simple}. Forward-forward \citep{hinton2022forward}
+avoids a backward pass altogether. We do not propose a new local rule; we
+transplant existing rules from \emph{weight} updates to \emph{mask-score}
+updates, so that the locality axis can be varied while the hypothesis class
+(subnetworks of a fixed random network) is held constant.
+
+\paragraph{Scheduling and partial credit assignment.} Decoupled training
+replaces the global backward pass with learned local surrogates
+\citep{jaderberg2017decoupled} or greedy layer-wise objectives
+\citep{belilovsky2019greedy}; FreezeOut \citep{brock2017freezeout} anneals
+early layers out of training on a fixed schedule. Linear probing followed by
+fine-tuning (\lpft{}) \citep{kumar2022finetuning} is the one-switch special
+case of our Axis~2, motivated in the transfer setting by feature distortion:
+a randomly initialized head sends large, misaligned gradients into good
+pretrained features. Block coordinate descent with greedy (Gauss--Southwell)
+block selection \citep{nutini2015coordinate} is the classical framework for
+adaptive block updates; its theory assumes uniform per-block costs. Our
+setting differs in that the cheap block is the \emph{only} block that admits
+depth truncation (Section~\ref{sec:framework}), making the cost asymmetry,
+and hence the scheduling problem, the object of study. Straight-through
+estimation of discrete masks follows \citet{bengio2013estimating}.

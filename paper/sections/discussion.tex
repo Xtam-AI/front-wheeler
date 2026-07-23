@@ -1,0 +1,60 @@
+\section{Discussion and limitations}
+\label{sec:discussion}
+
+\paragraph{One question, two axes.} Both experiments degrade the same
+resource---globally informed, per-step credit assignment---along orthogonal
+axes. Axis~1 fixes \emph{when} (every step) and varies \emph{what} each
+synapse may know; the answer is that connectivity search survives the loss of
+weight transport and the chained backward (\dfa{}), and fails gracefully but
+substantially when compressed to a scalar (\rmhebb{}). Axis~2 fixes
+\emph{what} (exact gradients) and varies \emph{when} depth is paid for; the
+answer is that ${\sim}4\%$ of steps suffice if---and, at low budgets, only
+if---their placement is chosen adaptively. In both cases the interesting
+quantity is not the best achievable accuracy but the \emph{shape of the
+degradation}: graceful along locality until the vector-to-scalar cliff,
+graceful along frequency provided the schedule is closed-loop.
+
+\paragraph{What we do not claim.} All experiments use MLPs on MNIST and
+CIFAR-10 with three seeds; absolute accuracies are far from competitive, by
+design. We make no claim that these orderings persist in convolutional or
+attention-based architectures, at scale, or under distribution shift. The
+per-step timing model transfers to transformers only in outline (a
+last-block-plus-head front step has the same structure, but attention
+backward and activation memory change the constants). The \rmhebb{} result
+in particular bounds only the specific three-factor rule we stabilized; a
+better scalar-modulated rule may exist, and our finding should be read as
+``the obvious one is insufficient,'' not as an impossibility result.
+
+\paragraph{What we believe transfers.} Three mechanisms, not the numbers:
+(i)~the cost asymmetry of nested versus partitioned blocks---depth truncation
+is exclusive to the top block, so compute-aware scheduling should treat block
+choice and burst timing as separate decisions; (ii)~burst-as-measurement with
+backoff---any scheduler that must decide whether expensive credit assignment
+is still productive faces the cried-wolf problem, and exponential backoff is
+a simple, robust answer; (iii)~the danger of isolated deep steps into a stale
+trunk, which links training stability to the \lpft{} feature-distortion
+mechanism and predicts that interleaved partial-training schemes need either
+burst structure or gradient clipping.
+
+\paragraph{Open directions.} Making the trigger's implicit estimate of
+inequality~\eqref{eq:greedy} explicit (e.g., cheap stochastic probes of
+$\|\nabla L\|$) would turn \fw{} from a heuristic into an approximate optimal
+stopping rule. On Axis~1, the gap between \dfa{} and \ep{} may close with
+layer-wise mask budgets or momentum on scores; and the vector-to-scalar cliff
+invites a controlled study of intermediate signals (low-rank error sketches,
+per-class scalars) to locate the threshold precisely.
+
+\section{Conclusion}
+Random networks already contain their solutions; finding them does not
+require backpropagation's full machinery---an error broadcast suffices---but
+it does require more than a scalar. And when exact gradients are available,
+most steps do not need them: a plateau-triggered controller with backoff
+spends $4\%$ of the depth budget for $94$--$97\%$ of the benefit, and beats
+every fixed alternative we tested at that budget. Both results argue that
+credit assignment is best understood as a budgeted resource with structure in
+\emph{where} and \emph{when} it is spent, not a fixed per-step cost.
+
+\paragraph{Reproducibility.} Code, run logs, and all raw result CSVs are
+available at \url{https://github.com/XTAM-AI/front-wheeler}. Every number in this paper is the
+mean over seeds $\{0,1,2\}$ with the exact commands recorded in the run
+scripts.

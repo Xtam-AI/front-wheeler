@@ -1,0 +1,105 @@
+\section{Experiment 2: front wheeler---when to pay for depth}
+\label{sec:exp2}
+
+\begin{algorithm}[t]
+\caption{\fw{}: plateau-triggered bursts with cried-wolf backoff}
+\label{alg:fw}
+\begin{algorithmic}[1]
+\State EMA loss $\bar L$; check interval $C$; threshold $\tau$; burst length
+$B$; cooldown $\kappa \gets C$
+\For{each minibatch}
+  \If{in burst} take a \textbf{full} step; on burst end: if the burst's
+  relative EMA improvement ${<}\tau$ then $\kappa \gets \min(2\kappa,
+  \kappa_{\max})$ \textbf{(back off)} else $\kappa \gets C$
+  \Else{} take a \textbf{front} step (backward through last two matrices
+  only)
+    \If{$\ge \kappa$ front steps since last burst, checked every $C$}
+      \If{relative EMA improvement since last check ${<}\tau$} start a burst
+      of $B$ full steps \EndIf
+    \EndIf
+  \EndIf
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Protocol.} MLPs with four hidden layers of width 512; SGD momentum
+$0.9$, learning rate $0.05$, global gradient-norm clipping at $1.0$; 20
+epochs (MNIST) / 30 epochs (CIFAR-10); 3 seeds. \fw{} uses $C{=}50$,
+$B{=}50$, $\kappa_{\max}{=}2000$, $\tau \in \{0.005, 0.01, 0.05\}$.
+Baselines: \textsc{full} (BP every step), \textsc{front} (never full),
+\textsc{periodic}-$N$ (full every $N$th step, $N \in \{2,5,10,20,50\}$),
+\lpft{} (front until a switch point, then full; switch swept over
+$\{0.5, 0.8, 0.9, 0.95, 0.96\}$ of training), and \bcd{} (identical trigger
+and backoff, but bursts update the trunk with the head frozen---the
+complementary-block variant).
+
+\begin{table}[t]
+\centering
+\caption{Final test accuracy at the low-budget operating point
+(${\sim}4$--$5\%$ full-depth steps), mean over 3 seeds. Budget = fraction of
+steps that back-propagate to full depth. \bcd{} bursts cost nearly full price
+(Section~\ref{sec:framework}). Anchors: \textsc{full} and \textsc{front}.}
+\label{tab:exp2}
+\begin{tabular}{lccc}
+\toprule
+Schedule & Budget & MNIST & CIFAR-10 \\
+\midrule
+\textsc{full} (anchor) & $100\%$ & $98.4$ & $55.0$ \\
+\midrule
+\fw{} (best $\tau$) & $4.1$--$4.8\%$ & $\mathbf{97.1}$ & $\mathbf{51.6}$ \\
+\bcd{} & $4.3$--$4.5\%$ & $97.2$ & $50.5$ \\
+\textsc{periodic}-20 & $5\%$ & $95.6$ & $46.5$ \\
+\lpft{} (switch $0.95$) & $5\%$ & $95.7$ & $47.1$ \\
+\lpft{} (switch $0.96$) & $4\%$ & $95.1$ & $45.6$ \\
+\midrule
+\textsc{front} (anchor) & $0\%$ & $94.9$ & $45.3$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Adaptive beats fixed and one-switch at matched budget.}
+Table~\ref{tab:exp2} compares schedules at the operating point \fw{} selects
+on its own (${\sim}4\%$ full steps). \fw{} beats the matched periodic
+schedule by $+1.5$ (MNIST) and $+5.1$ (CIFAR-10) points, and beats one-switch
+\lpft{} by $+2.0$ and $+6.1$. On both datasets \fw{} at $4\%$ budget also
+beats periodic and \lpft{} at $10\%$ budget. The margins \emph{grow} with
+task difficulty: the harder the problem, the more it matters \emph{when} full
+credit assignment is spent, not merely how much. \fw{} is robust to its
+threshold ($\tau$ varied $10\times$ moves accuracy by ${<}0.3$ points), and
+concedes $1.3$ (MNIST) and $3.4$ (CIFAR-10) points to always-full BP. At
+generous budgets the picture reverses in an instructive way: with $50\%$ full
+steps, \lpft{} is the best schedule on both datasets ($98.0\%$ / $54.2\%$),
+consistent with its design regime \citep{kumar2022finetuning}. Adaptivity
+pays precisely in the scarce-budget regime.
+
+\paragraph{The trigger, not the block, carries the benefit.} \bcd{} shares
+\fw{}'s closed-loop trigger but spends bursts on the complementary block
+(trunk only). It ties \fw{} on MNIST and trails by $1.1$ points on CIFAR-10.
+The scheduling mechanism therefore transfers across block structures nearly
+intact; joint bursts add a modest gain only on the harder task. Note,
+however, that \bcd{} bursts cannot be made cheap (Section~\ref{sec:framework}):
+only the nested scheme converts its cheap phase into compute savings.
+
+\paragraph{Isolated full steps are dangerous.} With periods $N \ge 10$ and no
+gradient clipping, interleaved training reliably collapsed to chance within
+the first epoch: the front-trained, increasingly confident head
+back-propagates error into a trunk it has drifted away from, with trunk
+gradient norms growing to ${\sim}20\times$ their initial scale before the
+collapse, driving hidden units dead. \fw{}'s \emph{consecutive} bursts partly
+mitigate this (the trunk re-equilibrates within a burst), and global
+norm-clipping removes it entirely; all reported runs clip at $1.0$. This is a
+from-scratch analogue of the feature-distortion argument for \lpft{}
+\citep{kumar2022finetuning}, here observable as a training-stability failure
+rather than an out-of-distribution effect.
+
+\paragraph{Compute accounting.} We report budgets in backward
+multiply--accumulates (Section~\ref{sec:framework}) because end-to-end wall
+clock at this scale is dominated by the harness (data loading, kernel launch,
+per-epoch evaluation): all schedules complete in ${\sim}16$s (MNIST) /
+${\sim}20$s (CIFAR-10) per run on an RTX PRO 6000. Isolated per-step timing
+confirms the proxy translates once GEMMs dominate: a front step is
+$1.4\times$ faster than a full step at width 512/depth 4 (batch 128), rising
+to $2.5$--$2.7\times$ at widths 4096--8192 and depths 8--16 (batches
+512--1024), approaching the $(F + 2F)/(F + 2F\cdot 2/D)$ asymptote for
+forward cost $F$. Since \fw{} takes ${\sim}96\%$ front steps, its amortized
+step cost approaches the front-step cost at scale.

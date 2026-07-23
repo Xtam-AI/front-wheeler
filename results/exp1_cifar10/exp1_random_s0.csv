@@ -1,0 +1,2 @@
+epoch,step,test_acc,test_loss,wall_s
+0,0,0.1097,2.3865,0.38
