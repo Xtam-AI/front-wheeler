@@ -61,9 +61,44 @@ variants: \textsc{persist} (status quo), \textsc{reset} (trunk moments
 cleared at burst entry), \textsc{reset-warmup} (reset plus a 10-step
 in-burst learning-rate warmup, mirroring fine-tuning practice when
 unfreezing), and \textsc{episodic} (Adam state exists only inside bursts;
-front phases run on SGD). Beyond stability, \textsc{episodic} has a systems
-consequence: optimizer memory for the trunk (two fp32 moments per parameter)
-need exist only during the ${\sim}4$--$6\%$ of steps spent in bursts.
-% TODO-final-numbers: ablation table ({persist,reset,reset-warmup,episodic}
-% x {fw, periodic-10} x 3 seeds) pending; discriminates moment-staleness
-% from co-adaptation churn (reset rescues periodic iff staleness dominates).
+front phases run on SGD). Table~\ref{tab:optstate} gives the verdict, which
+refined our hypothesis. \textsc{reset-warmup} \emph{rescues} periodic
+interleaving almost entirely ($2.05 \to 1.82$, from far worse than
+front-only to slightly better): the dominant pathology of isolated deep
+steps under Adam is stale-state re-entry at full aggression, not
+perturbation per se. But \textsc{reset} alone \emph{backfires}
+($2.05 \to 2.33$): a freshly initialized Adam step is the most aggressive
+kind, so hygiene without gentleness is worse than staleness. The principle
+that survives is sharper than the one we started with: \emph{the optimizer
+must fire with the BP, and it must fire gently}---bursts amortize a warmup
+naturally, while length-1 episodes can only approximate one by running deep
+steps at reduced learning rate (for periodic, our 10-step warmup on
+length-1 episodes reduces to exactly that, a caveat for interpretation).
+Even fully rescued, periodic at a $10\%$ budget ($1.82$) does not reach
+\fw{} at $6\%$ ($1.77$): adaptive placement retains its advantage. For
+\fw{} itself the variants are a wash ($1.773$ persist vs.\ $1.773$
+reset-warmup)---bursts already re-equilibrate internally---which yields the
+systems result for free: \emph{trunk optimizer state can be discarded
+between bursts at no quality cost}, so Adam's two fp32 moments per trunk
+parameter need exist only during the ${\sim}6\%$ of steps spent in bursts.
+The strict \textsc{episodic} variant fails here ($2.13$), attributable to
+its SGD front phases (transformers train poorly without adaptivity); a
+stateless-but-adaptive front optimizer is the natural repair and is future
+work.
+
+\begin{table}[t]
+\centering
+\caption{Optimizer-state ablation on the transformer (validation loss,
+mean $\pm$ std, 3 seeds). Anchors: front-only $1.836$, full BP $1.488$.}
+\label{tab:optstate}
+\begin{tabular}{lcc}
+\toprule
+Trunk Adam state & \fw{} ($6\%$) & \textsc{periodic}-10 ($10\%$) \\
+\midrule
+\textsc{persist} & $1.773 \pm 0.013$ & $2.047 \pm 0.127$ \\
+\textsc{reset} & $1.782 \pm 0.013$ & $2.333 \pm 0.055$ \\
+\textsc{reset-warmup} & $\mathbf{1.773 \pm 0.013}$ & $\mathbf{1.818 \pm 0.011}$ \\
+\textsc{episodic} (SGD front) & $2.132 \pm 0.012$ & $2.437 \pm 0.008$ \\
+\bottomrule
+\end{tabular}
+\end{table}
