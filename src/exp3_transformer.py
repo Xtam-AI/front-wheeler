@@ -24,13 +24,13 @@ SHAKESPEARE_URL = ("https://raw.githubusercontent.com/karpathy/char-rnn/"
 # ---------------------------------------------------------------- model
 
 class Block(nn.Module):
-    def __init__(self, d, h, ctx):
+    def __init__(self, d, h, ctx, drop):
         super().__init__()
         self.ln1 = nn.LayerNorm(d)
-        self.attn = nn.MultiheadAttention(d, h, batch_first=True)
+        self.attn = nn.MultiheadAttention(d, h, dropout=drop, batch_first=True)
         self.ln2 = nn.LayerNorm(d)
         self.mlp = nn.Sequential(nn.Linear(d, 4 * d), nn.GELU(),
-                                 nn.Linear(4 * d, d))
+                                 nn.Linear(4 * d, d), nn.Dropout(drop))
         self.register_buffer("mask", torch.triu(
             torch.full((ctx, ctx), float("-inf")), diagonal=1))
 
@@ -44,18 +44,19 @@ class Block(nn.Module):
 
 
 class CharGPT(nn.Module):
-    def __init__(self, vocab, d=384, h=6, layers=6, ctx=256):
+    def __init__(self, vocab, d=384, h=6, layers=6, ctx=256, drop=0.2):
         super().__init__()
         self.ctx = ctx
         self.wte = nn.Embedding(vocab, d)
         self.wpe = nn.Embedding(ctx, d)
-        self.blocks = nn.ModuleList([Block(d, h, ctx) for _ in range(layers)])
+        self.emb_drop = nn.Dropout(drop)
+        self.blocks = nn.ModuleList([Block(d, h, ctx, drop) for _ in range(layers)])
         self.ln_f = nn.LayerNorm(d)
         self.head = nn.Linear(d, vocab, bias=False)  # untied on purpose
 
     def trunk(self, idx):
         pos = torch.arange(idx.shape[1], device=idx.device)
-        x = self.wte(idx) + self.wpe(pos)
+        x = self.emb_drop(self.wte(idx) + self.wpe(pos))
         for b in self.blocks[:-1]:
             x = b(x)
         return x
@@ -130,13 +131,15 @@ def run(args):
     device = get_device()
     train, val, vocab = load_data(device)
     model = CharGPT(vocab, args.dmodel, args.heads, args.layers,
-                    args.ctx).to(device)
+                    args.ctx, args.dropout).to(device)
     front_params = (list(model.blocks[-1].parameters())
                     + list(model.ln_f.parameters())
                     + list(model.head.parameters()))
     front_ids = {id(p) for p in front_params}
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=0.1)
-    sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.steps)
+    sched = torch.optim.lr_scheduler.LambdaLR(
+        opt, lambda t: min((t + 1) / args.warmup, 1.0)
+        * 0.5 * (1.0 + math.cos(math.pi * t / args.steps)))
     gen = torch.Generator(device=device.type).manual_seed(args.seed)
 
     name = f"exp3_{args.schedule}_s{args.seed}" + (f"_{args.tag}" if args.tag else "")
@@ -237,6 +240,8 @@ def main():
     p.add_argument("--burst", type=int, default=50)
     p.add_argument("--max-cooldown", type=int, default=2000)
     p.add_argument("--clip", type=float, default=1.0)
+    p.add_argument("--dropout", type=float, default=0.2)
+    p.add_argument("--warmup", type=int, default=200)
     p.add_argument("--eval-every", type=int, default=250)
     p.add_argument("--tag", default="")
     args = p.parse_args()
