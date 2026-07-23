@@ -1,79 +1,65 @@
 \section{Introduction}
 
-Backpropagation (BP) gives every parameter, at every step, an error signal
-that is globally informed: it reflects the loss, the targets, and the state of
-every layer above. This is expensive in compute (a full backward pass costs
-roughly twice the forward pass), in memory (activations must be stored to
-full depth), and in biological plausibility (exact weight transport and a
-global synchronized backward phase have no accepted neural analogue). A long
-line of work attacks each cost separately. We instead ask a deliberately
-simple question: \emph{along which axes, and by how much, can the BP signal be
-degraded before learning breaks?}
+A full backward pass costs roughly twice the forward pass, must store
+activations to full depth, and touches every parameter on every step. Much of
+that work may be wasted: late layers can be updated by backpropagating
+through only the final two weight matrices, and for long stretches of
+training those cheap updates are all that is improving the loss. The question
+is \emph{when} the network actually needs deep credit assignment---and
+whether that decision can be made online, from signals training already
+produces.
 
-We study two independent axes of degradation in small, fully controlled
-settings.
+We propose \fw{} (\emph{front wheeler}). By default every step is a
+\emph{front} step: the trunk runs forward without building a graph, and only
+the last hidden layer and readout are updated. A plateau detector watches an
+EMA of the training loss; when improvement stalls, \fw{} fires a \emph{burst}
+of consecutive full-backpropagation steps, then returns to front mode. An
+exponential backoff handles the ``boy who cried wolf'' failure: if a burst
+itself yields no improvement, the plateau is global rather than the front's
+fault, and the evidence bar for the next alarm doubles. The schedule is a
+closed-loop controller---a cost-aware Gauss--Southwell rule over
+\emph{nested} parameter blocks, where each burst doubles as a measurement of
+whether depth is still worth paying for (Section~\ref{sec:framework}).
 
-\paragraph{Axis 1: locality of the learning signal (what each synapse may
-know).} Supermask results show that a randomly weighted, sufficiently wide
-network already contains subnetworks that solve the task; learning can be
-reduced to \emph{connectivity search}, with weights never updated
-\citep{ramanujan2020whats, zhou2019deconstructing, malach2020proving}. But the
-known search procedure (edge-popup) uses full backpropagation on mask scores,
-so the demonstration that ``learning is wiring'' still smuggles in a global
-gradient. We hold the setting fixed---frozen random MLP, learnable binary
-mask---and vary only the information available to the mask update rule:
-(a)~the full gradient (\ep{}, the upper bound), (b)~a fixed random projection
-of the output error vector delivered directly to each layer
-(\dfa{} \citep{nokland2016direct}, applied here to mask scores rather than
-weights), and (c)~a single global scalar per sample modulating a Hebbian
-eligibility trace (\rmhebb{}, a three-factor rule
-\citep{fremaux2016neuromodulated, williams1992simple}).
-
-\paragraph{Axis 2: frequency of deep credit assignment (when the network pays
-for depth).} Late layers can be updated by backpropagating through only the
-final two weight matrices; the trunk below is touched only by full-depth
-steps. We propose \fw{} (\emph{front wheeler}): run cheap last-two-layer
-updates by default, and fire a \emph{burst} of full-BP steps only when a loss
-plateau indicates the cheap subspace is exhausted. An exponential backoff
-handles the ``boy who cried wolf'' failure: if a burst itself yields no
-improvement, the plateau is global rather than the front's fault, and the
-evidence threshold for the next alarm is raised.
-
-\paragraph{Contributions.} On MNIST \citep{lecun1998gradient} and CIFAR-10
-\citep{krizhevsky2009learning}, with MLPs and three seeds throughout:
+\paragraph{Contributions.} On MLPs (MNIST, CIFAR-10) and a 10.8M-parameter
+character-level transformer, three seeds throughout:
 \begin{enumerate}
-  \item \textbf{Wiring vs.\ weights.} Gradient mask search over frozen random
-  weights comes within half a point of dense training on MNIST ($98.2\%$ vs.\
-  $98.7\%$) and \emph{beats} it on CIFAR-10 ($55.9\%$ vs.\ $53.0\%$), where
-  dense MLP training overfits (Table~\ref{tab:exp1}).
-  \item \textbf{An information threshold for local wiring rules.} A random
-  projection of the error \emph{vector} suffices: \dfa{} mask search reaches
-  within $1.3$--$2.6$ points of \ep{} and matches dense weight training on
-  CIFAR-10. The global-\emph{scalar} rule we stabilized does not suffice:
-  \rmhebb{} learns ($2.6$--$5\times$ chance) but plateaus far below all
-  vector-signal rules. In these experiments, the threshold for effective
-  wiring search sits between a broadcast vector and a broadcast scalar.
-  \item \textbf{Adaptive beats scheduled deep credit assignment.} At a matched
-  budget of ${\sim}4$--$5\%$ full-BP steps, \fw{} beats the matched periodic
-  schedule by $+1.5$ (MNIST) and $+5.1$ (CIFAR-10) points, and beats
-  one-switch linear-probe-then-fine-tune \citep{kumar2022finetuning} by
-  $+2.0$ and $+6.1$ points respectively (Table~\ref{tab:exp2}). The margins
-  grow with task difficulty. A block-coordinate ablation (\bcd{}: bursts
-  update the trunk only) shows the closed-loop trigger, not the block
-  structure, carries most of the benefit.
-  \item \textbf{Two documented failure modes.} (a)~Selecting mask entries by
-  $|s|$ while passing straight-through gradients to $s$ silently drops a
-  $\operatorname{sign}(s)$ factor and reduces learning to chance.
-  (b)~\emph{Isolated} full-BP steps interleaved with front training can
-  collapse the network: the front-trained, confident head back-propagates
-  error signals into the stale trunk whose norm we measure growing to
-  ${\sim}20\times$ its initial scale, driving dead-ReLU collapse unless
-  gradients are clipped. The latter is an independent, from-scratch manifestation of the
-  feature-distortion mechanism that motivates \lpft{}
-  \citep{kumar2022finetuning}.
+  \item \textbf{Adaptive bursts beat every fixed alternative at low budget.}
+  At a matched ${\sim}4$--$5\%$ full-backprop budget, \fw{} beats periodic
+  schedules by $+1.5$ (MNIST) and $+5.1$ (CIFAR-10) points and one-switch
+  \lpft{} \citep{kumar2022finetuning} by $+2.0$ and $+6.1$---margins that
+  \emph{grow} with task difficulty, and that survive the worst rather than
+  best trigger threshold. On the transformer, \fw{} spending ${\sim}6\%$ of
+  steps at full depth matches \lpft{} spending $50\%$, and is the only
+  low-budget schedule that improves at all on never back-propagating deep.
+  \item \textbf{Isolated deep steps are dangerous; bursts make them safe.}
+  Full-depth steps sprinkled one at a time into cheap training collapse MLPs
+  (dead-ReLU cascade driven by error signals from a co-adapted head, measured
+  growing to ${\sim}20\times$ their initial scale) and degrade the
+  transformer \emph{monotonically with interleaving frequency}: periodic
+  interleaving at a $20\%$ budget trains to a worse loss than spending
+  nothing on depth at all. Consecutive phases (\fw{} bursts, \lpft{}'s single
+  switch) do not exhibit the failure.
+  \item \textbf{The optimizer should fire with the backpropagation.} Under
+  SGD the collapse is prevented by gradient clipping; under Adam it is not,
+  because Adam's scale-invariant update neutralizes clipping, and trunk
+  moment estimates go stale across inter-burst gaps (the schedule-induced
+  analogue of the sparse-embedding pathology that motivates SparseAdam). We
+  formulate and test \emph{episodic} optimizer state---moments that exist
+  only within bursts---which additionally removes the trunk's optimizer
+  memory for the ${\sim}96\%$ of steps spent in front mode.
+  \item \textbf{The trigger, not the block, carries the benefit.} A
+  block-coordinate ablation (\bcd{}: identical trigger, bursts update the
+  complementary block) tracks \fw{} closely on all testbeds, isolating the
+  closed-loop schedule as the active ingredient---while only the nested
+  scheme converts cheap phases into compute savings, since trunk-only steps
+  still backpropagate activation gradients through the head.
 \end{enumerate}
 
-We emphasize scope: all results are on small MLPs and standard image
-classification toys. The contribution is a controlled characterization of two
-axes of BP removal---not a claim about state-of-the-art training. Code and
-all run logs are released.
+Section~\ref{sec:exp1} reports the experiments that motivated \fw{}: on
+frozen random networks, connectivity search alone nearly matches weight
+training, and a trained readout on frozen features already recovers most of
+the accuracy---evidence that the bulk of per-step improvement does not
+require deep credit assignment. We emphasize scope throughout: all results
+are deliberately small-scale; we characterize the schedule, not the state of
+the art. Code and all run logs are released.

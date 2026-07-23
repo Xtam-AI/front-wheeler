@@ -24,10 +24,10 @@
 \newcommand{\tht}{\theta_{\mathrm{t}}}
 
 % TODO alternative titles:
-%  "Wiring and Waiting: Two Ways to Spend Less on Backpropagation"
-%  "The Price of Locality and Infrequency in Credit Assignment"
-\title{How Much Backpropagation Do You Need?\\
-\large The Price of Local and Infrequent Credit Assignment in Two Controlled Settings}
+%  "Front Wheeler: Plateau-Triggered Backpropagation"
+%  "Paying for Depth Only When It Pays: Adaptive Bursts of Backpropagation"
+\title{Front Wheeler: Training with Full Backpropagation\\
+Only When It Pays}
 
 \author{Mamdouh Alramadan\\
 XTAM Research Labs\\
@@ -39,41 +39,37 @@ XTAM Research Labs\\
 \maketitle
 
 \begin{abstract}
-Backpropagation supplies every parameter with a globally informed,
-per-step error signal. We ask how much of that signal is actually needed, by
-removing it along two independent axes in controlled MLP settings.
-\textbf{Axis 1 (locality):} we freeze all weights at random initialization and
-train only a binary connectivity mask, comparing mask-search rules that use
-progressively less global information: full gradients (edge-popup), a fixed
-random projection of the output error (direct feedback alignment applied to
-mask scores), and a single global scalar per sample (a three-factor Hebbian
-rule). \textbf{Axis 2 (frequency):} we train normally but replace most
-backpropagation steps with cheap updates of the last hidden layer and readout
-only, triggering full-depth bursts by a plateau detector with exponential
-backoff (\fw{}, ``front wheeler''). On MNIST and CIFAR-10 we find:
-(i) gradient-based mask search over frozen random weights comes within half a
-point of dense weight training on MNIST and \emph{exceeds} it on CIFAR-10
-($55.9\%$ vs.\ $53.0\%$); (ii) an error-vector broadcast suffices for local
-mask search (within $1$--$3$ points of the gradient upper bound), while the
-scalar-modulated Hebbian rule we stabilized does not ($26$--$52\%$), placing
-the information threshold---in this setting---between a vector and a scalar;
-(iii) plateau-triggered bursts using ${\sim}4\%$ full-backprop steps beat
-periodic schedules and one-switch linear-probe-then-fine-tune at matched
-budget, by margins that \emph{grow} with task difficulty ($+1.5$ to
-$+6.1$ points at the best threshold; the worst still wins by $+0.9$ to
-$+3.6$); and (iv) an ablation shows the closed-loop trigger, not the choice
-of parameter block, carries most of the benefit. We also document two failure
-modes---a sign subtlety in straight-through mask gradients and a dead-ReLU
-collapse caused by isolated full-backprop steps---that we believe are useful
-to practitioners. All experiments are small-scale by design; we characterize,
-rather than compete.
+Backpropagating through every layer on every step is the single largest cost
+of training, yet most steps may not need deep credit assignment. We propose
+\emph{front wheeler} (\fw{}): by default, each step updates only the last
+hidden layer and the readout (backward through two weight matrices); a
+\emph{burst} of full-backpropagation steps fires only when a loss plateau
+signals that the cheap subspace is exhausted, with exponential backoff when a
+burst itself proves unproductive. On MLPs (MNIST, CIFAR-10), \fw{} at a
+${\sim}4\%$ full-backprop budget beats matched periodic schedules and
+one-switch linear-probe-then-fine-tune (\lpft{}) by margins that grow with
+task difficulty ($+1.5$ to $+6.1$ points). On a 10.8M-parameter transformer
+language model, \fw{} with ${\sim}6\%$ of steps at full depth matches
+\lpft{} spending $50\%$, and is the only low-budget schedule that improves
+on never back-propagating deep at all. Three mechanism findings accompany the
+method: (i) \emph{isolated} full-depth steps interleaved with cheap steps
+are actively destructive---collapsing MLPs via dead units and degrading the
+transformer monotonically with interleaving frequency---and burst structure
+is what makes deep steps safe; (ii) under Adam the damage persists despite
+gradient clipping, since Adam's scale-invariant updates neutralize clipping,
+motivating an \emph{episodic} optimizer whose moment estimates do not
+outlive inter-burst gaps; (iii) a block-coordinate ablation shows the
+closed-loop trigger, not the block structure, carries most of the benefit.
+Experiments are small-scale by design; we characterize the schedule, not the
+state of the art.
 \end{abstract}
 
 \input{sections/intro}
 \input{sections/related}
 \input{sections/framework}
-\input{sections/exp1}
 \input{sections/exp2}
+\input{sections/exp3}
+\input{sections/exp1}
 \input{sections/discussion}
 
 \bibliographystyle{unsrtnat}

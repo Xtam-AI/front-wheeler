@@ -1,80 +1,90 @@
-\section{Experiment 1: how local can wiring search get?}
+\section{Origins: the wiring experiments that motivated front wheeler}
 \label{sec:exp1}
 
-\paragraph{Protocol.} MLPs with two hidden layers of width 1024, weights
-frozen at a signed-constant initialization \citep{ramanujan2020whats}, mask
-keeping $50\%$ of connections per layer. Controls: \textsc{random} (fixed
-random mask), \textsc{readout} (backprop trains the final linear layer only,
-on frozen random features), and \textsc{dense} (ordinary BP on all weights,
-no mask). SGD with momentum $0.9$ and cosine decay; 30 epochs (MNIST) / 40
-epochs (CIFAR-10); batch size 128; 3 seeds. Learning rates: \ep{} and
-\textsc{dense} $0.1$, \dfa{} $0.05$, \rmhebb{} $0.005$.
+\fw{} rests on a premise: most per-step improvement does not require deep
+credit assignment. The experiments in this section---originally aimed at a
+different question---supplied that premise. Supermask results show that a
+randomly weighted, sufficiently wide network already contains subnetworks
+that solve the task \citep{ramanujan2020whats, zhou2019deconstructing,
+malach2020proving}; we asked how \emph{local} the search for such a
+subnetwork can be made, and the control conditions of that study are what
+pointed at \fw{}.
+
+\paragraph{Setup.} MLPs with frozen random weights (signed-constant
+initialization); only a binary mask (top-$k$ scores per layer, $50\%$ kept)
+is learned. Rules, ordered by the information available to hidden layers:
+\ep{} (straight-through gradients on scores, i.e.\ full BP---the upper
+bound), \dfa{} (the layer's error is a fixed random projection of the output
+error \citep{nokland2016direct}, applied here to mask scores: no weight
+transport, no chained backward), and \rmhebb{} (hidden layers see one global
+scalar per sample modulating a batch-centered Hebbian eligibility
+\citep{fremaux2016neuromodulated, williams1992simple}). Controls:
+\textsc{random} mask, \textsc{readout} (train the final layer only), and
+\textsc{dense} (ordinary training). 30/40 epochs (MNIST/CIFAR-10), 3 seeds.
 
 \begin{table}[t]
 \centering
-\caption{Final test accuracy (mean $\pm$ std over 3 seeds). Only the mask is
-learned in \ep{}/\dfa{}/\rmhebb{}; weights stay at random initialization.}
+\caption{Final test accuracy (mean $\pm$ std, 3 seeds), at two and four
+hidden layers. Only the mask is learned in \ep{}/\dfa{}/\rmhebb{}.}
 \label{tab:exp1}
-\begin{tabular}{llcc}
+\begin{tabular}{lcccc}
 \toprule
-Rule & Signal to hidden layers & MNIST & CIFAR-10 \\
+& \multicolumn{2}{c}{2 hidden layers} & \multicolumn{2}{c}{4 hidden layers} \\
+Rule & MNIST & CIFAR-10 & MNIST & CIFAR-10 \\
 \midrule
-\textsc{dense} (control) & full gradient (weights train) & $98.7 \pm 0.1$ & $53.0 \pm 0.4$ \\
-\ep{} & full gradient & $98.2 \pm 0.1$ & $\mathbf{55.9 \pm 0.2}$ \\
-\dfa{} & random projection of error vector & $96.9 \pm 0.1$ & $53.3 \pm 0.2$ \\
-\textsc{readout} (control) & none (readout only) & $94.9 \pm 0.1$ & $45.6 \pm 0.2$ \\
-\rmhebb{} & one global scalar per sample & $51.7 \pm 3.9$ & $26.3 \pm 6.3$ \\
-\textsc{random} (control) & none & $12.5 \pm 3.5$ & $10.1 \pm 0.8$ \\
+\textsc{dense} (control) & $98.7 \pm 0.1$ & $53.0 \pm 0.4$ & --- & --- \\
+\ep{} & $98.2 \pm 0.1$ & $\mathbf{55.9 \pm 0.2}$ & $98.3 \pm 0.1$ & $\mathbf{56.2 \pm 0.1}$ \\
+\dfa{} & $96.9 \pm 0.1$ & $53.3 \pm 0.2$ & $81.8 \pm 0.9$ & $23.1 \pm 8.9$ \\
+\textsc{readout} (control) & $94.9 \pm 0.1$ & $45.6 \pm 0.2$ & --- & --- \\
+\rmhebb{} & $51.7 \pm 3.9$ & $26.3 \pm 6.3$ & $34.1 \pm 9.9$ & $18.2 \pm 4.0$ \\
+\textsc{random} (control) & $12.5 \pm 3.5$ & $10.1 \pm 0.8$ & --- & --- \\
 \bottomrule
 \end{tabular}
 \end{table}
 
+\paragraph{What holds, and what is shallow-only.} Three results
+(Table~\ref{tab:exp1}, Figure~\ref{fig:exp1curves}). First, \emph{wiring
+rivals weights, robustly}: gradient mask search over frozen random weights
+comes within half a point of dense training on MNIST, beats it on CIFAR-10
+($55.9\%$ vs.\ $53.0\%$, where the dense MLP overfits), and is
+depth-stable---at four hidden layers it is unchanged or better. Second,
+\emph{the local rule's parity is a shallow-network phenomenon}: at two
+hidden layers \dfa{} mask search matches dense weight training on CIFAR-10,
+but at four hidden layers it collapses ($96.9 \to 81.8$ on MNIST,
+$53.3 \to 23.1$ with large seed variance on CIFAR-10), consistent with
+feedback alignment's known depth pathology. Claims about local wiring rules
+in this paper are therefore scoped to shallow networks. Third, \emph{a
+global scalar is not enough at any depth we tested}: \rmhebb{} stays far
+below every vector-signal rule and degrades further with depth.
+
+\paragraph{The observation that led to \fw{}.} The \textsc{readout} control
+is the quiet protagonist: training \emph{only the top} of a frozen random
+network already recovers $94.9\%$ on MNIST and $45.6\%$ on CIFAR-10---most
+of the accuracy of full training, for a small fraction of its backward
+cost. If cheap top-only updates carry that much of the signal, full-depth
+credit assignment is needed only occasionally, and the question becomes
+\emph{when}: the scheduling problem \fw{} answers.
+
 \begin{figure}[t]
 \centering
 \includegraphics[width=\textwidth]{exp1_locality}
-\caption{Learning curves along the locality axis (mean over 3 seeds; bands
-$\pm 1$ std). Colored curves learn only the mask over frozen random weights;
-gray lines mark the final accuracy of the controls. The vector-signal rules
-(\ep{}, \dfa{}) finish within two points of dense training or above it; the scalar-signal rule
-(\rmhebb{}) learns slowly and noisily.}
+\caption{Learning curves for the wiring rules at two hidden layers (mean
+over 3 seeds; bands $\pm 1$ std). Colored curves learn only the mask over
+frozen random weights; gray lines mark the controls. At this depth the
+vector-signal rules (\ep{}, \dfa{}) finish within two points of dense
+training or above it; Table~\ref{tab:exp1} shows \dfa{}'s parity does not
+survive depth 4.}
 \label{fig:exp1curves}
 \end{figure}
-
-\paragraph{Results.} Table~\ref{tab:exp1} and Figure~\ref{fig:exp1curves}
-show a graded degradation along the locality axis. Three observations. \textbf{(i) Wiring matches, then
-beats, weights.} On MNIST, gradient mask search is within half a point of
-dense training. On CIFAR-10---where a dense MLP overfits---mask search over
-the same frozen random weights \emph{outperforms} dense training by
-$2.9$ points. Restricting learning to connectivity acts as a strong
-regularizer while retaining enough capacity, strengthening the claim that
-the random network already contains the solution
-\citep{malach2020proving}. \textbf{(ii) A broadcast error vector is enough.}
-\dfa{} mask search---no weight transport, no chained backward---lands within
-$1.3$ (MNIST) and $2.6$ (CIFAR-10) points of \ep{}, beats the trained-readout
-control by $2.0$ and $7.7$ points, and \emph{matches dense weight training}
-on CIFAR-10. Local wiring rules genuinely restructure hidden layers.
-\textbf{(iii) A scalar is not enough.} \rmhebb{} learns---$5{\times}$ chance
-on MNIST, $2.6{\times}$ on CIFAR-10---but plateaus far below every
-vector-signal rule, with high seed variance. In this setting the information
-threshold for effective connectivity search lies between a broadcast vector
-and a broadcast scalar.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.5\textwidth]{exp1_sparsity}
-\caption{Mask-budget robustness on MNIST: final accuracy vs.\ fraction of
-connections kept (mean $\pm$ std, 3 seeds). Both search rules degrade
-gracefully; at $10\%$ kept, the local rule still matches the trained-readout
-control.}
+\caption{Mask-budget robustness on MNIST (2 hidden layers): both search
+rules degrade gracefully down to $10\%$ of connections kept, where the local
+rule still matches the trained-readout control.}
 \label{fig:sparsity}
 \end{figure}
-
-\paragraph{Sparsity.} Sweeping the kept fraction over
-$\{70\%, 50\%, 30\%, 10\%\}$ on MNIST (Figure~\ref{fig:sparsity}) changes
-\ep{} accuracy only from $98.2$ to $96.9$ and \dfa{} from $96.9$ to $94.8$:
-even keeping one tenth of random connections, the local rule still matches
-the trained readout on frozen features ($94.8$ vs.\ $94.9$). Connectivity
-search is robust to the mask budget.
 
 \subsection{Two failure modes worth documenting}
 \label{sec:exp1-stability}
@@ -91,11 +101,9 @@ is raised.
 
 \paragraph{Hebbian runaway and its stabilization.} A naive three-factor rule
 diverges here: with ReLU activity the eligibility $a_i x_j$ is non-negative,
-so reinforced co-activations grow activations, which grow eligibilities, until
-logits saturate (we observed logit magnitudes ${>}10^2$ within 200 steps),
-the softmax collapses to one-hot, exploration dies, and accuracy pins at
-chance. Three standard components stabilize it: batch-centered (covariance)
-eligibilities, RMS-normalized per-layer updates so the learning rate sets the
-score step scale, and a loss-based rather than sampled-action reward. The
-stabilized rule learns but remains far below the vector-signal rules,
-suggesting the gap is informational, not merely a tuning artifact.
+so reinforced co-activations grow activations, which grow eligibilities,
+until logits saturate (magnitudes ${>}10^2$ within 200 steps), the softmax
+collapses to one-hot, exploration dies, and accuracy pins at chance.
+Batch-centered (covariance) eligibilities, RMS-normalized per-layer updates,
+and a loss-based rather than sampled-action reward stabilize it; the
+stabilized rule learns but remains far below the vector-signal rules.

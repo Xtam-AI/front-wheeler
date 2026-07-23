@@ -1,0 +1,55 @@
+\section{Front wheeler on a transformer}
+\label{sec:exp3}
+
+% TODO-final-numbers: seeds 1,2 pending; all numbers below are seed 0 and
+% will be replaced by 3-seed means when the suite completes.
+
+\paragraph{Protocol.} Character-level language modeling on tiny
+Shakespeare: a 10.8M-parameter decoder-only transformer (6 layers,
+$d{=}384$, 6 heads, context 256, dropout $0.2$), AdamW ($3{\times}10^{-4}$,
+200-step warmup, cosine decay, weight decay $0.1$, clip $1.0$), 5{,}000
+steps, batch 64, 3 seeds. The front is the last transformer block, the final
+LayerNorm, and the LM head; the LM head is \emph{untied} from the token
+embedding so front steps cannot leak trunk updates through weight tying.
+Front steps run the trunk under \texttt{no\_grad}. Schedules as in
+Section~\ref{sec:exp2}; metric is validation loss.
+
+\paragraph{Only adaptive bursts convert a small budget into progress.}
+At seed 0: full BP reaches $1.50$; front-only $1.84$. Between those anchors,
+the fixed schedules barely move: \lpft{} at a $10\%$ budget gains $0.004$
+over front-only, and periodic interleaving is \emph{destructive}---$2.04$ at
+a $10\%$ budget and $2.44$ at $20\%$, far worse than doing nothing deep.
+\fw{} at a ${\sim}6\%$ budget reaches $1.76$, matching \lpft{} at a $50\%$
+budget---an ${\sim}8\times$ budget efficiency over the one-switch
+schedule---and \bcd{} tracks it at $1.79$. The gap to always-full remains
+substantial (\fw{} recovers ${\sim}22\%$ of the front-to-full gap, vs.\
+${\sim}$two-thirds on MLPs): deep trunks need more deep training on harder
+tasks, and \fw{} trades quality for compute rather than matching full BP.
+
+\paragraph{Interleaving toxicity is optimizer-dependent and clipping does
+not save Adam.} The periodic failure is the MLP collapse of
+Section~\ref{sec:exp2} in a new guise, with two differences. First, damage
+scales monotonically with interleaving \emph{frequency} (worse at period 5
+than 50), implicating repeated perturbation---each isolated deep step moves
+trunk features under a head sharply co-adapted to the old ones, and the
+system churns instead of converging---rather than any single bad step.
+Second, it happens \emph{despite} gradient clipping, which cured the SGD
+case: Adam's update $m/\sqrt{v}$ is approximately scale-invariant in the
+gradient, so clipping the gradient does not clip the step. Trunk moment
+estimates also go stale across gaps ($\beta_2 = 0.999$ means a 50-step burst
+refreshes only ${\sim}5\%$ of $v$), the schedule-induced analogue of the
+sparse-update pathology that motivates SparseAdam for embedding tables.
+
+\paragraph{Episodic optimizer state: the optimizer fires with the BP.}
+If moment estimates are part of the credit-assignment machinery, their
+\emph{state} should be episodic like the bursts themselves. We test four
+variants: \textsc{persist} (status quo), \textsc{reset} (trunk moments
+cleared at burst entry), \textsc{reset-warmup} (reset plus a 10-step
+in-burst learning-rate warmup, mirroring fine-tuning practice when
+unfreezing), and \textsc{episodic} (Adam state exists only inside bursts;
+front phases run on SGD). Beyond stability, \textsc{episodic} has a systems
+consequence: optimizer memory for the trunk (two fp32 moments per parameter)
+need exist only during the ${\sim}4$--$6\%$ of steps spent in bursts.
+% TODO-final-numbers: ablation table ({persist,reset,reset-warmup,episodic}
+% x {fw, periodic-10} x 3 seeds) pending; discriminates moment-staleness
+% from co-adaptation churn (reset rescues periodic iff staleness dominates).

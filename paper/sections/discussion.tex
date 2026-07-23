@@ -1,63 +1,67 @@
 \section{Discussion and limitations}
 \label{sec:discussion}
 
-\paragraph{One question, two axes.} Both experiments degrade the same
-resource---globally informed, per-step credit assignment---along orthogonal
-axes. Axis~1 fixes \emph{when} (every step) and varies \emph{what} each
-synapse may know; the answer is that connectivity search survives the loss of
-weight transport and the chained backward (\dfa{}), and fails gracefully but
-substantially when compressed to a scalar (\rmhebb{}). Axis~2 fixes
-\emph{what} (exact gradients) and varies \emph{when} depth is paid for; the
-answer is that ${\sim}4\%$ of steps, placed adaptively, recover roughly
-two-thirds of the accuracy gap between never and always paying for
-depth---and that among the schedules we tested at that budget, only the
-adaptive ones do. In both cases the interesting quantity is not the best
-achievable accuracy but the \emph{shape of the degradation}: graceful along
-locality until the vector-to-scalar cliff, graceful along frequency provided
-the schedule is closed-loop.
+\paragraph{What the schedule buys, and what it does not.} Across MLPs and a
+small transformer, the picture is consistent: cheap front steps carry most
+of the per-step progress; deep credit assignment is needed occasionally, in
+\emph{consecutive} doses, at moments a loss plateau identifies. At
+${\sim}4$--$6\%$ full-depth budgets, \fw{} recovers roughly two-thirds of the
+front-to-full accuracy gap on MLPs and outperforms every fixed schedule we
+tested on both architectures---but it does not match always-full training
+($1.3$--$3.3$ points on MLPs; a larger gap in validation loss on the
+transformer, where it recovers about a fifth of the front-to-full gap). \fw{}
+is a compute-quality trade, not a free lunch, and the trade steepens with
+task difficulty in both directions: adaptivity matters more, and full depth
+remains further out of reach.
 
-\paragraph{What we do not claim.} All experiments use MLPs on MNIST and
-CIFAR-10 with three seeds; absolute accuracies are far from competitive, by
-design. We make no claim that these orderings persist in convolutional or
-attention-based architectures, at scale, or under distribution shift. The
-per-step timing model transfers to transformers only in outline (a
-last-block-plus-head front step has the same structure, but attention
-backward and activation memory change the constants). The \rmhebb{} result
-in particular bounds only the specific three-factor rule we stabilized; a
-better scalar-modulated rule may exist, and our finding should be read as
-``the obvious one is insufficient,'' not as an impossibility result.
+\paragraph{What we believe transfers.} Four mechanisms, not the numbers.
+(i)~\emph{Nested beats partitioned}: depth truncation is exclusive to the
+top block, so compute-aware schedules should treat burst timing and block
+choice as separate decisions---and our ablation shows the timing is the
+active ingredient. (ii)~\emph{Burst-as-measurement with backoff}: any
+scheduler that must decide whether expensive credit assignment is still
+productive faces the cried-wolf problem; exponential backoff is a simple,
+robust answer. (iii)~\emph{Isolated deep steps are dangerous}: interleaved
+partial-training schemes need burst structure, and under Adam neither
+gradient clipping nor regularization substitutes for it. (iv)~\emph{The
+optimizer fires with the BP}: moment estimates are part of the
+credit-assignment machinery and should not outlive inter-burst gaps; the
+episodic formulation also removes trunk optimizer memory for the vast
+majority of steps.
 
-\paragraph{What we believe transfers.} Three mechanisms, not the numbers:
-(i)~the cost asymmetry of nested versus partitioned blocks---depth truncation
-is exclusive to the top block, so compute-aware scheduling should treat block
-choice and burst timing as separate decisions; (ii)~burst-as-measurement with
-backoff---any scheduler that must decide whether expensive credit assignment
-is still productive faces the cried-wolf problem, and exponential backoff is
-a simple, robust answer; (iii)~the danger of isolated deep steps into a stale
-trunk, which links training stability to the \lpft{} feature-distortion
-mechanism and predicts that interleaved partial-training schemes need either
-burst structure or gradient clipping.
+\paragraph{What we do not claim.} All experiments are small (MLPs; a 10.8M
+transformer on 1MB of text) with three seeds; absolute numbers are far from
+competitive by design. We have not tested \fw{} at scale, under distribution
+shift, with pretrained initializations, or against learned-schedule
+baselines; the front was always the topmost block, and other cheap subspaces
+(low-rank, sparse) are untested. The origins study
+(Section~\ref{sec:exp1}) is scoped by its own depth result: local wiring
+rules match dense training only in shallow networks.
 
 \paragraph{Open directions.} Making the trigger's implicit estimate of
-inequality~\eqref{eq:greedy} explicit (e.g., cheap stochastic probes of
-$\|\nabla L\|$) would turn \fw{} from a heuristic into an approximate optimal
-stopping rule. On Axis~1, the gap between \dfa{} and \ep{} may close with
-layer-wise mask budgets or momentum on scores; and the vector-to-scalar cliff
-invites a controlled study of intermediate signals (low-rank error sketches,
-per-class scalars) to locate the threshold precisely.
+inequality~\eqref{eq:greedy} explicit (cheap stochastic probes of
+$\|\nabla L\|$) would turn \fw{} into an approximate optimal stopping rule.
+The episodic-optimizer ablation suggests a broader design space:
+per-burst warmup lengths, moment half-lives matched to burst spacing, and
+trust-ratio update clipping as the Adam-compatible safety net. At scale, the
+memory argument sharpens---trunk optimizer state that exists only $4\%$ of
+the time is a different systems regime---and the natural next testbed is a
+pretrained model, where \fw{} becomes an adaptive fine-tuning schedule and
+\lpft{} is the one-switch special case it generalizes.
 
 \section{Conclusion}
-Random networks already contain their solutions; finding them does not
-require backpropagation's full machinery---an error broadcast suffices---but
-it does require more than the scalar-modulated rule we could stabilize. And
-when exact gradients are available, most steps do not need them: a
-plateau-triggered controller with backoff spends $4\%$ of the depth budget to
-recover about two-thirds of the accuracy gap between never and always paying
-for it, and beats every fixed alternative we tested at that budget. Both results argue that
-credit assignment is best understood as a budgeted resource with structure in
-\emph{where} and \emph{when} it is spent, not a fixed per-step cost.
+Most training steps do not need deep credit assignment; the hard part is
+knowing which ones do. \fw{} answers with a closed-loop schedule: cheap
+front steps by default, consecutive bursts of full backpropagation when---and
+only when---a plateau says the cheap subspace is exhausted, and exponential
+backoff when a burst reveals the plateau was global. At a few percent of the
+full-backprop budget it beats every fixed schedule we tested, on MLPs and on
+a transformer; its failures localize to mechanisms we could measure
+(isolated-step churn, stale optimizer moments) and repair (bursts, episodic
+state). Credit assignment is a budgeted resource; \fw{} is a first
+controller for spending it.
 
 \paragraph{Reproducibility.} Code, run logs, and all raw result CSVs are
-available at \url{https://github.com/XTAM-AI/front-wheeler}. Every number in this paper is the
-mean over seeds $\{0,1,2\}$ with the exact commands recorded in the run
-scripts.
+available at \url{https://github.com/XTAM-AI/front-wheeler}. Every number in
+this paper is the mean over seeds $\{0,1,2\}$ with the exact commands
+recorded in the run scripts.

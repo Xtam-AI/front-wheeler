@@ -1,42 +1,35 @@
 \section{Related work}
 
-\paragraph{Supermasks and the lottery ticket hypothesis.} \citet{frankle2019lottery}
-showed that dense networks contain sparse subnetworks trainable in isolation;
-\citet{zhou2019deconstructing} observed that a mask alone---applied to
-\emph{untrained} weights---already performs well, and \citet{ramanujan2020whats}
-made this practical with edge-popup, finding subnetworks of random networks
-that match trained accuracy. \citet{malach2020proving} and
-\citet{pensia2020optimal} proved that sufficiently overparameterized random
-networks contain such subnetworks with high probability. \citet{gaier2019weight}
-demonstrated architectures that perform without weight training. All of this
-establishes that the \emph{target} of connectivity search exists; the search
-itself, however, has been gradient-based. Our Axis~1 asks what happens when the
-search rule is restricted to local information.
-
-\paragraph{Local learning rules.} Feedback alignment \citep{lillicrap2016random}
-replaces the transposed forward weights in the backward pass with fixed random
-matrices; direct feedback alignment \citep{nokland2016direct} broadcasts the
-output error directly to every hidden layer. Three-factor rules combine a
-Hebbian eligibility trace with a global neuromodulatory scalar
-\citep{fremaux2016neuromodulated}, the scalar case being REINFORCE-style
-learning \citep{williams1992simple}. Forward-forward \citep{hinton2022forward}
-avoids a backward pass altogether. We do not propose a new local rule; we
-transplant existing rules from \emph{weight} updates to \emph{mask-score}
-updates, so that the locality axis can be varied while the hypothesis class
-(subnetworks of a fixed random network) is held constant.
-
-\paragraph{Scheduling and partial credit assignment.} Decoupled training
+\paragraph{Scheduling and partial credit assignment.} Linear probing
+followed by fine-tuning (\lpft{}) \citep{kumar2022finetuning} is the
+one-switch special case of \fw{}, motivated in the transfer setting by
+feature distortion: a fresh head sends large, misaligned gradients into good
+pretrained features. Our stability findings are the from-scratch, per-step
+version of the same mechanism. FreezeOut \citep{brock2017freezeout} anneals
+early layers out of training on a fixed schedule; decoupled training
 replaces the global backward pass with learned local surrogates
 \citep{jaderberg2017decoupled} or greedy layer-wise objectives
-\citep{belilovsky2019greedy}; FreezeOut \citep{brock2017freezeout} anneals
-early layers out of training on a fixed schedule. Linear probing followed by
-fine-tuning (\lpft{}) \citep{kumar2022finetuning} is the one-switch special
-case of our Axis~2, motivated in the transfer setting by feature distortion:
-a randomly initialized head sends large, misaligned gradients into good
-pretrained features. Block coordinate descent with greedy (Gauss--Southwell)
-block selection \citep{nutini2015coordinate} is the classical framework for
-adaptive block updates; its theory assumes uniform per-block costs. Our
-setting differs in that the cheap block is the \emph{only} block that admits
-depth truncation (Section~\ref{sec:framework}), making the cost asymmetry,
-and hence the scheduling problem, the object of study. Straight-through
-estimation of discrete masks follows \citet{bengio2013estimating}.
+\citep{belilovsky2019greedy}. All of these fix the schedule in advance;
+\fw{}'s trigger is closed-loop, and its backoff addresses a failure mode
+(unproductive expensive phases) that fixed schedules cannot express. Block
+coordinate descent with greedy (Gauss--Southwell) selection
+\citep{nutini2015coordinate} is the classical frame for adaptive block
+updates; its theory assumes uniform per-block costs, whereas the cheap block
+here is the \emph{only} one admitting depth truncation
+(Section~\ref{sec:framework})---the cost asymmetry is the problem statement.
+
+\paragraph{Supermasks and random features (origins).} \citet{frankle2019lottery}
+showed dense networks contain sparse trainable subnetworks;
+\citet{zhou2019deconstructing} and \citet{ramanujan2020whats} showed a mask
+over \emph{untrained} weights already performs well, with existence
+guarantees by \citet{malach2020proving} and \citet{pensia2020optimal}, and
+\citet{gaier2019weight} demonstrated weight-agnostic architectures. Our
+origins study (Section~\ref{sec:exp1}) transplants local learning
+rules---feedback alignment \citep{lillicrap2016random}, direct feedback
+alignment \citep{nokland2016direct}, three-factor Hebbian rules
+\citep{fremaux2016neuromodulated, williams1992simple}; see also
+forward-forward \citep{hinton2022forward}---from weight updates to
+mask-score updates via straight-through estimation
+\citep{bengio2013estimating}. Its readout control, a frozen trunk with a
+trained top, is what motivated \fw{}'s premise that cheap top-only updates
+carry most per-step progress.
