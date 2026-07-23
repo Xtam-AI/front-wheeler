@@ -99,7 +99,12 @@ def fig_pareto():
     fig, axes = plt.subplots(1, 2, figsize=(6.5, 2.6))
     for ax, sub, title in [(axes[0], "exp2", "MNIST"),
                            (axes[1], "exp2_cifar10", "CIFAR-10")]:
-        s = finals(load(sub))
+        df = load(sub)
+        f_all = df.loc[df.groupby(["variant", "seed"])["epoch"].idxmax()].copy()
+        f_all["full_frac"] = f_all["full_steps"] / f_all["step"]
+        s = f_all.groupby("variant").agg(acc=("test_acc", "mean"),
+                                         sd=("test_acc", "std"),
+                                         frac=("full_frac", "mean"))
         for fam, color, lab, (li, dx, dy, ha) in [
                 ("periodic", RED, "periodic-N", (0, -4, -9, "left")),
                 ("lpft", AQUA, "LP-FT", (2, 7, -13, "left"))]:
@@ -111,10 +116,15 @@ def fig_pareto():
             ax.annotate(lab, (x[li], y[li]), xytext=(dx, dy),
                         textcoords="offset points", color=color, fontsize=7,
                         ha=ha)
-        fws = s[s.index.str.startswith("fw")]
-        ax.errorbar(fws.frac, fws.acc, yerr=fws.sd, color=BLUE, marker="D",
-                    ms=4, ls="none", capsize=2, elinewidth=0.8)
-        ax.annotate("FW (adaptive)", (fws.frac.mean(), fws.acc.max()),
+        # pool all fw tau variants x seeds into one marker; per-tau numbers
+        # live in the text -- separate markers are unreadable at this x-range
+        fw_runs = f_all[f_all.variant.str.startswith("fw")]
+        fx, fy = fw_runs.full_frac.mean(), fw_runs.test_acc.mean()
+        ax.errorbar([fx], [fy], yerr=[[fy - fw_runs.test_acc.min()],
+                                      [fw_runs.test_acc.max() - fy]],
+                    color=BLUE, marker="D", ms=5.5, ls="none", capsize=2.5,
+                    elinewidth=0.9)
+        ax.annotate("FW (adaptive)", (fx, fw_runs.test_acc.max()),
                     xytext=(0, 8), textcoords="offset points", color=BLUE,
                     fontsize=7, ha="center", fontweight="bold")
         b = s.loc["bcd"]

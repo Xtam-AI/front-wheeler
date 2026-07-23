@@ -60,12 +60,14 @@ Schedule & Budget & MNIST & CIFAR-10 \\
 \begin{figure}[t]
 \centering
 \includegraphics[width=\textwidth]{exp2_pareto}
-\caption{Accuracy vs.\ full-backprop budget (log scale; mean $\pm$ std,
-3 seeds). Fixed schedules (\textsc{periodic}-$N$) and one-switch \lpft{}
-trace nearly identical Pareto curves; the adaptive schedules (\fw{}, and the
-\bcd{} ablation sharing its trigger) sit above both in the scarce-budget
-regime, by margins that grow from MNIST to CIFAR-10. Gray lines anchor the
-always-full and never-full extremes.}
+\caption{Accuracy vs.\ full-backprop budget (log scale). Curves: mean $\pm$
+std over 3 seeds. The \fw{} diamond pools all thresholds ($\tau \in
+\{0.005, 0.01, 0.02, 0.05\}$) and seeds---whiskers span min to max, per-$\tau$
+numbers are in the text. Fixed schedules (\textsc{periodic}-$N$) and
+one-switch \lpft{} trace nearly identical Pareto curves; the adaptive
+schedules (\fw{}, and the \bcd{} ablation sharing its trigger) sit above both
+in the scarce-budget regime, by margins that grow from MNIST to CIFAR-10.
+Gray lines anchor the always-full and never-full extremes.}
 \label{fig:pareto}
 \end{figure}
 
