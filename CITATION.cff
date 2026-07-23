@@ -8,7 +8,7 @@ authors:
     email: research@xtam.ai
 repository-code: "https://github.com/XTAM-AI/front-wheeler"
 license: MIT
-year: 2026
+date-released: "2026-07-23"
 preferred-citation:
   type: article
   title: "How Much Backpropagation Do You Need? The Price of Local and Infrequent Credit Assignment in Two Controlled Settings"
