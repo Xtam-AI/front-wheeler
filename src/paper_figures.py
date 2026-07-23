@@ -101,8 +101,8 @@ def fig_pareto():
                            (axes[1], "exp2_cifar10", "CIFAR-10")]:
         s = finals(load(sub))
         for fam, color, lab, (li, dx, dy, ha) in [
-                ("periodic", RED, "periodic-N", (0, -4, -8, "left")),
-                ("lpft", AQUA, "LP-FT", (2, 0, 8, "center"))]:
+                ("periodic", RED, "periodic-N", (0, -4, -9, "left")),
+                ("lpft", AQUA, "LP-FT", (2, 7, -13, "left"))]:
             pts = sorted([(BUDGET[v], r.acc, r.sd) for v, r in s.iterrows()
                           if v in BUDGET and v.startswith(fam)])
             x, y, e = zip(*pts)
@@ -113,15 +113,18 @@ def fig_pareto():
                         ha=ha)
         fws = s[s.index.str.startswith("fw")]
         ax.errorbar(fws.frac, fws.acc, yerr=fws.sd, color=BLUE, marker="D",
-                    ms=4.5, ls="none", capsize=2, elinewidth=0.8)
+                    ms=4, ls="none", capsize=2, elinewidth=0.8)
         ax.annotate("FW (adaptive)", (fws.frac.mean(), fws.acc.max()),
-                    xytext=(0, 7), textcoords="offset points", color=BLUE,
+                    xytext=(0, 8), textcoords="offset points", color=BLUE,
                     fontsize=7, ha="center", fontweight="bold")
         b = s.loc["bcd"]
         ax.errorbar([b.frac], [b.acc], yerr=[b.sd], color=VIOLET, marker="s",
-                    ms=4, ls="none", capsize=2, elinewidth=0.8)
-        ax.annotate("BCD", (b.frac, b.acc), xytext=(9, -8),
-                    textcoords="offset points", color=VIOLET, fontsize=7)
+                    ms=4, ls="none", capsize=2, elinewidth=0.8,
+                    markerfacecolor="white")
+        ax.annotate("BCD", (b.frac, b.acc), xytext=(18, -18),
+                    textcoords="offset points", color=VIOLET, fontsize=7,
+                    arrowprops=dict(arrowstyle="-", color=VIOLET, lw=0.6,
+                                    shrinkA=1, shrinkB=3))
         for v, ls, lab in [("full", "--", "full BP (100%)"),
                            ("front", ":", "front only (0%)")]:
             r = s.loc[v]
@@ -134,6 +137,8 @@ def fig_pareto():
         ax.set_xticklabels(["2%", "5%", "10%", "20%", "50%"])
         ax.set_title(title, loc="left")
         ax.set_xlabel("full-backprop budget (fraction of steps, log)")
+        lo, hi = ax.get_ylim()
+        ax.set_ylim(lo - 0.04 * (hi - lo), hi + 0.10 * (hi - lo))
     axes[0].set_ylabel("final test accuracy")
     fig.tight_layout()
     fig.savefig(os.path.join(OUT, "exp2_pareto.pdf"))
