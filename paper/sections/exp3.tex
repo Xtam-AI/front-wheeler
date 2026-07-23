@@ -1,9 +1,6 @@
 \section{Front wheeler on a transformer}
 \label{sec:exp3}
 
-% TODO-final-numbers: seeds 1,2 pending; all numbers below are seed 0 and
-% will be replaced by 3-seed means when the suite completes.
-
 \paragraph{Protocol.} Character-level language modeling on tiny
 Shakespeare: a 10.8M-parameter decoder-only transformer (6 layers,
 $d{=}384$, 6 heads, context 256, dropout $0.2$), AdamW ($3{\times}10^{-4}$,
@@ -14,17 +11,34 @@ embedding so front steps cannot leak trunk updates through weight tying.
 Front steps run the trunk under \texttt{no\_grad}. Schedules as in
 Section~\ref{sec:exp2}; metric is validation loss.
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.72\textwidth]{exp3_pareto}
+\caption{Transformer: validation loss vs.\ full-backprop budget (log
+scale; mean $\pm$ std, 3 seeds; the \fw{} diamond pools thresholds, whiskers
+span min to max). Periodic interleaving is \emph{destructive}---worse than
+front-only at every budget, monotonically in interleaving frequency---and
+one-switch \lpft{} tracks the front-only line until half the budget is
+spent. \fw{} is the only low-budget schedule below the front-only line.}
+\label{fig:exp3pareto}
+\end{figure}
+
 \paragraph{Only adaptive bursts convert a small budget into progress.}
-At seed 0: full BP reaches $1.50$; front-only $1.84$. Between those anchors,
-the fixed schedules barely move: \lpft{} at a $10\%$ budget gains $0.004$
-over front-only, and periodic interleaving is \emph{destructive}---$2.04$ at
-a $10\%$ budget and $2.44$ at $20\%$, far worse than doing nothing deep.
-\fw{} at a ${\sim}6\%$ budget reaches $1.76$, matching \lpft{} at a $50\%$
-budget---an ${\sim}8\times$ budget efficiency over the one-switch
-schedule---and \bcd{} tracks it at $1.79$. The gap to always-full remains
-substantial (\fw{} recovers ${\sim}22\%$ of the front-to-full gap, vs.\
-${\sim}$two-thirds on MLPs): deep trunks need more deep training on harder
-tasks, and \fw{} trades quality for compute rather than matching full BP.
+Full BP reaches $1.488 \pm 0.008$; front-only $1.836 \pm 0.004$
+(Figure~\ref{fig:exp3pareto}). Between those anchors the fixed schedules
+barely move: \lpft{} at a $10\%$ budget gains $0.004$ over front-only
+($1.832 \pm 0.004$), and periodic interleaving is \emph{destructive} at
+every budget tested---$1.87$ at $2\%$, worsening monotonically with
+interleaving frequency to $2.40 \pm 0.05$ at a $20\%$ budget, far worse
+than doing nothing deep. \fw{} at a ${\sim}6\%$ budget reaches
+$1.773 \pm 0.013$, statistically indistinguishable from \lpft{} spending
+$50\%$ ($1.766 \pm 0.007$)---an ${\sim}8\times$ budget efficiency over
+the one-switch schedule---robust across thresholds ($1.773$--$1.776$ for
+$\tau$ varied $10\times$), with \bcd{} tracking at $1.797 \pm 0.010$.
+The gap to always-full remains substantial: \fw{} recovers ${\sim}18\%$
+of the front-to-full gap here, vs.\ ${\sim}$two-thirds on MLPs. Deep
+trunks need more deep training on harder tasks; \fw{} trades quality for
+compute rather than matching full BP.
 
 \paragraph{Interleaving toxicity is optimizer-dependent and clipping does
 not save Adam.} The periodic failure is the MLP collapse of

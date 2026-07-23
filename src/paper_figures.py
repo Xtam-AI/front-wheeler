@@ -188,9 +188,69 @@ def fig_sparsity():
     plt.close(fig)
 
 
+EXP3_BUDGET = {"periodic_p50": .02, "periodic_p20": .05, "periodic_p10": .10,
+               "periodic_p5": .20, "lpft_sf095": .05, "lpft_sf09": .10,
+               "lpft_sf08": .20, "lpft_sf05": .50}
+
+
+def fig_pareto_exp3():
+    df = load("exp3_char")
+    f = df.loc[df.groupby(["variant", "seed"])["step"].idxmax()].copy()
+    f = f[~f.variant.str.contains("os_|lever")]
+    f["frac"] = f["full_steps"] / f["step"]
+    s = f.groupby("variant").agg(val=("val_loss", "mean"),
+                                 sd=("val_loss", "std"), frac=("frac", "mean"))
+    fig, ax = plt.subplots(figsize=(4.6, 2.9))
+    for fam, color, lab, (li, dx, dy, ha) in [
+            ("periodic", RED, "periodic-N", (3, -2, 6, "right")),
+            ("lpft", AQUA, "LP-FT", (3, 0, -11, "center"))]:
+        pts = sorted([(EXP3_BUDGET[v], r.val, r.sd) for v, r in s.iterrows()
+                      if v in EXP3_BUDGET and v.startswith(fam)])
+        x, y, e = zip(*pts)
+        ax.errorbar(x, y, yerr=e, color=color, marker="o", ms=3.5, capsize=2,
+                    elinewidth=0.8)
+        ax.annotate(lab, (x[li], y[li]), xytext=(dx, dy),
+                    textcoords="offset points", color=color, fontsize=7, ha=ha)
+    fws = f[f.variant.str.startswith("fw")]
+    fx, fy = fws.frac.mean(), fws.val_loss.mean()
+    ax.errorbar([fx], [fy], yerr=[[fy - fws.val_loss.min()],
+                                  [fws.val_loss.max() - fy]],
+                color=BLUE, marker="D", ms=5.5, ls="none", capsize=2.5,
+                elinewidth=0.9)
+    ax.annotate("FW (adaptive)", (fx, fws.val_loss.min()), xytext=(0, -13),
+                textcoords="offset points", color=BLUE, fontsize=7,
+                ha="center", fontweight="bold")
+    b = s.loc["bcd"]
+    ax.errorbar([b.frac], [b.val], yerr=[b.sd], color=VIOLET, marker="s",
+                ms=4, ls="none", capsize=2, elinewidth=0.8,
+                markerfacecolor="white")
+    ax.annotate("BCD", (b.frac, b.val), xytext=(16, 10),
+                textcoords="offset points", color=VIOLET, fontsize=7,
+                arrowprops=dict(arrowstyle="-", color=VIOLET, lw=0.6,
+                                shrinkA=1, shrinkB=3))
+    for v, ls, lab, (xf, ha) in [("full", "--", "full BP (100%)", (0.02, "left")),
+                                 ("front", ":", "front only (0%)", (0.98, "right"))]:
+        r = s.loc[v]
+        ax.axhline(r.val, color=GRAY_M, ls=ls, lw=1.0, zorder=0)
+        ax.annotate(lab, (xf, r.val), xycoords=("axes fraction", "data"),
+                    xytext=(0, 2), textcoords="offset points", color=GRAY_D,
+                    fontsize=6.5, ha=ha)
+    ax.set_xscale("log")
+    ax.set_xticks([.02, .05, .1, .2, .5])
+    ax.set_xticklabels(["2%", "5%", "10%", "20%", "50%"])
+    ax.set_xlabel("full-backprop budget (fraction of steps, log)")
+    ax.set_ylabel("validation loss (lower is better)")
+    lo, hi = ax.get_ylim()
+    ax.set_ylim(lo - 0.06 * (hi - lo), hi + 0.06 * (hi - lo))
+    fig.tight_layout()
+    fig.savefig(os.path.join(OUT, "exp3_pareto.pdf"))
+    plt.close(fig)
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     fig_exp1()
     fig_pareto()
     fig_sparsity()
+    fig_pareto_exp3()
     print("wrote", sorted(os.listdir(OUT)))
