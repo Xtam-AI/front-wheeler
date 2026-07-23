@@ -72,7 +72,30 @@ state of the art.
 \input{sections/exp1}
 \input{sections/discussion}
 
+\section*{Acknowledgments}
+This work was carried out at XTAM Research Labs. We believe transparency
+about tooling matters: experiments, code, figures, and manuscript were
+developed with substantial assistance from Anthropic's Claude (Claude Code,
+Claude Fable 5), used for implementation, experiment orchestration,
+debugging, and drafting under the direction and review of the author. All
+results were produced by the released code, and every reported number was
+checked against the raw run logs in the repository.
+
 \bibliographystyle{unsrtnat}
 \bibliography{refs}
+
+\appendix
+
+\section{Experimental infrastructure}
+\label{app:infra}
+All experiments ran on a single workstation: one NVIDIA RTX PRO 6000
+Blackwell (96\,GB), 64 CPU cores, 256\,GB RAM; PyTorch 2.13 / CUDA~13 in a
+micromamba environment. The complete experimental suite---both MLP studies,
+the transformer study, and all ablations and sweeps, three seeds
+throughout---consumes under ten GPU-hours end to end. Datasets: MNIST
+\citep{lecun1998gradient}, CIFAR-10 \citep{krizhevsky2009learning}, and the
+tiny Shakespeare corpus. Exact commands for every run are recorded in the
+repository's \texttt{scripts/} directory; per-run CSV logs (including
+wall-clock times) are in \texttt{results/}.
 
 \end{document}
