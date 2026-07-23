@@ -136,10 +136,19 @@ def run(args):
                     + list(model.ln_f.parameters())
                     + list(model.head.parameters()))
     front_ids = {id(p) for p in front_params}
-    opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=0.1)
-    sched = torch.optim.lr_scheduler.LambdaLR(
-        opt, lambda t: min((t + 1) / args.warmup, 1.0)
-        * 0.5 * (1.0 + math.cos(math.pi * t / args.steps)))
+    trunk_params = [p for p in model.parameters() if id(p) not in front_ids]
+    # group 0 = trunk, group 1 = front (episodic state ops target group 0)
+    opt = torch.optim.AdamW([{"params": trunk_params}, {"params": front_params}],
+                            lr=args.lr, weight_decay=0.1)
+
+    def lam(t):
+        return (min((t + 1) / args.warmup, 1.0)
+                * 0.5 * (1.0 + math.cos(math.pi * t / args.steps)))
+
+    sched = torch.optim.lr_scheduler.LambdaLR(opt, [lam, lam])
+    # strict episodic: Adam exists only inside bursts; front phases run on SGD
+    sgd_front = (torch.optim.SGD(front_params, lr=args.front_lr, momentum=0.9)
+                 if args.opt_state == "episodic" else None)
     gen = torch.Generator(device=device.type).manual_seed(args.seed)
 
     name = f"exp3_{args.schedule}_s{args.seed}" + (f"_{args.tag}" if args.tag else "")
@@ -151,6 +160,8 @@ def run(args):
 
     switch_step = int(args.switch_frac * args.steps)
     burst_mode = "trunk" if args.schedule == "bcd" else "full"
+    prev_mode = "front"
+    steps_into_episode = 0
     full_steps = 0
     bp_flops = 0
     ema = None
@@ -195,15 +206,36 @@ def run(args):
         x, y = get_batch(train, args.batch_size, args.ctx, gen)
         logits = model(x) if mode != "front" else model.forward_split(x)
         loss = F.cross_entropy(logits.flatten(0, 1), y.flatten())
-        opt.zero_grad()
+        for p in model.parameters():
+            p.grad = None
         loss.backward()
         if mode == "trunk":
-            for p in model.parameters():
-                if id(p) in front_ids:
-                    p.grad = None
+            for p in front_params:
+                p.grad = None
         torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip)
-        opt.step()
+        expensive = mode != "front"
+        if expensive and prev_mode == "front" and args.opt_state != "persist":
+            # entering an episode: moment estimates must not outlive the gap
+            stale = (model.parameters() if args.opt_state == "episodic"
+                     else trunk_params)
+            for p in stale:
+                opt.state.pop(p, None)
+            steps_into_episode = 0
+        if expensive:
+            steps_into_episode += 1
+            if args.opt_state in ("reset-warmup", "episodic"):
+                f = min(steps_into_episode / args.burst_warmup, 1.0)
+                groups = (opt.param_groups if args.opt_state == "episodic"
+                          else opt.param_groups[:1])
+                for g in groups:
+                    g["lr"] *= f          # sched.step() recomputes next iter
+        if args.opt_state == "episodic" and not expensive:
+            sgd_front.param_groups[0]["lr"] = args.front_lr * lam(step)
+            sgd_front.step()
+        else:
+            opt.step()
         sched.step()
+        prev_mode = mode
         full_steps += int(mode != "front")
         bp_flops += (bwd_macs_per_token(args.dmodel, vocab, args.layers, mode)
                      * args.batch_size * args.ctx)
@@ -242,6 +274,15 @@ def main():
     p.add_argument("--clip", type=float, default=1.0)
     p.add_argument("--dropout", type=float, default=0.2)
     p.add_argument("--warmup", type=int, default=200)
+    p.add_argument("--opt-state", default="persist",
+                   choices=["persist", "reset", "reset-warmup", "episodic"],
+                   help="trunk Adam state across bursts: persist (status quo), "
+                        "reset at episode entry, reset+in-burst warmup, or "
+                        "episodic (Adam only inside bursts, SGD front)")
+    p.add_argument("--burst-warmup", type=int, default=10,
+                   help="in-episode LR warmup steps for reset-warmup/episodic")
+    p.add_argument("--front-lr", type=float, default=0.05,
+                   help="episodic: SGD lr for front phases")
     p.add_argument("--eval-every", type=int, default=250)
     p.add_argument("--tag", default="")
     args = p.parse_args()
