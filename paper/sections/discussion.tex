@@ -13,7 +13,15 @@ not match always-full training
 transformer, where it recovers about a fifth of the front-to-full gap). \fw{}
 is a compute-quality trade, not a free lunch, and the trade steepens with
 task difficulty in both directions: adaptivity matters more, and full depth
-remains further out of reach.
+remains further out of reach. The study's organizing observation is about
+variance across conditions, not means within one: every fixed alternative
+we tested owns at most one winning cell and at least one failing one,
+because each hard-codes an assumption---an early budget (\textsc{ftlp}), a
+freeze time (\textsc{ratchet}), a cadence (\textsc{pburst},
+\textsc{periodic}), a single switch (\lpft{})---that some tested condition
+violates, stationary conditions included. What \textsc{full} actually
+sells is unconditional robustness; \fw{} is the cheap schedule that comes
+closest to inheriting it.
 
 \paragraph{What we believe transfers.} Four mechanisms, not the numbers.
 (i)~\emph{Nested beats partitioned}: depth truncation is exclusive to the
@@ -53,19 +61,22 @@ pretrained model, where \fw{} becomes an adaptive fine-tuning schedule and
 
 \section{Conclusion}
 Most training steps do not need deep credit assignment; the hard part is
-knowing which ones do. \fw{} answers with a closed-loop schedule: cheap
-front steps by default, consecutive bursts of full backpropagation when---and
-only when---a plateau says the cheap subspace is exhausted, and exponential
-backoff when a burst reveals the plateau was global. At a few percent of the
-full-backprop budget it beats or matches every fixed schedule we tested on
-MLPs and beats all of them on a transformer at low budget. Two exceptions are
-stated where they occur: a well-timed freezing ratchet edges \fw{} on MNIST
-(within seed noise) and at mid-budget transformer compute, though its
-required timing is catastrophic when transferred across testbeds. Where
-fixed schedules fail, the failures localize to mechanisms we could measure
-(isolated-step churn, stale optimizer moments) and repair (bursts, episodic
-state). Credit assignment is a budgeted resource; \fw{} is a first controller for
-spending it, and its backoff cap is the dial that chooses the budget.
+knowing which ones do---and every cheap schedule is an answer to that
+question. The fixed answers each win where their built-in assumption holds
+and fail outright where it does not: the best mid-budget schedule in this
+study (deep-first, right budget) is also its worst cell (deep-first, wrong
+budget) and drops to the never-deep floor when the data changes. \fw{}'s
+answer---front steps by default, consecutive bursts when a plateau says the
+cheap subspace is exhausted, backoff when a burst reveals the plateau was
+global---carries no assumption to violate: one configuration, two
+architectures, two optimizers, stationary and shifted data, never worse
+than second-best among cheap schedules and never below the never-deep
+floor, at $20$--$25\%$ of full backprop's compute. Where schedules fail,
+the failures localize to mechanisms we could measure (isolated-step churn,
+stale optimizer moments, irrevocable early commitments) and repair (bursts,
+episodic state, revocability). Credit assignment is a budgeted resource;
+\fw{} is a first controller for spending it---its backoff cap is the dial
+that chooses the budget, and its robustness, not its peak, is the point.
 
 \paragraph{Reproducibility.} Code, run logs, and all raw result CSVs are
 available at \url{https://github.com/XTAM-AI/front-wheeler}. Every number in
