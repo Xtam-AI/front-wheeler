@@ -6,8 +6,9 @@ small transformer, the picture is consistent: cheap front steps carry most
 of the per-step progress; deep credit assignment is needed occasionally, in
 \emph{consecutive} doses, at moments a loss plateau identifies. At
 ${\sim}4$--$6\%$ full-depth budgets, \fw{} recovers roughly two-thirds of the
-front-to-full accuracy gap on MLPs and outperforms every fixed schedule we
-tested on both architectures---but it does not match always-full training
+front-to-full accuracy gap on MLPs and outperforms or matches every fixed
+schedule we tested (Sections~\ref{sec:exp2}, \ref{sec:exp3})---but it does
+not match always-full training
 ($1.3$--$3.3$ points on MLPs; a larger gap in validation loss on the
 transformer, where it recovers about a fifth of the front-to-full gap). \fw{}
 is a compute-quality trade, not a free lunch, and the trade steepens with
@@ -24,10 +25,11 @@ productive faces the cried-wolf problem; exponential backoff is a simple,
 robust answer. (iii)~\emph{Isolated deep steps are dangerous}: interleaved
 partial-training schemes need burst structure, and under Adam neither
 gradient clipping nor regularization substitutes for it. (iv)~\emph{The
-optimizer fires with the BP}: moment estimates are part of the
-credit-assignment machinery and should not outlive inter-burst gaps; the
-episodic formulation also removes trunk optimizer memory for the vast
-majority of steps.
+optimizer fires with the BP, gently}: moment estimates are part of the
+credit-assignment machinery, should not outlive inter-burst gaps, and must
+re-enter with a warmup---fresh state at full aggression is worse than stale
+state; the episodic formulation also removes trunk optimizer memory for the
+vast majority of steps.
 
 \paragraph{What we do not claim.} All experiments are small (MLPs; a 10.8M
 transformer on 1MB of text) with three seeds; absolute numbers are far from
