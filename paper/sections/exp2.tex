@@ -1,27 +1,6 @@
 \section{Front wheeler on MLPs}
 \label{sec:exp2}
 
-\begin{algorithm}[t]
-\caption{\fw{}: plateau-triggered bursts with cried-wolf backoff}
-\label{alg:fw}
-\begin{algorithmic}[1]
-\State EMA loss $\bar L$; check interval $C$; threshold $\tau$; burst length
-$B$; cooldown $\kappa \gets C$
-\For{each minibatch}
-  \If{in burst} take a \textbf{full} step; on burst end: if the burst's
-  relative EMA improvement ${<}\tau$ then $\kappa \gets \min(2\kappa,
-  \kappa_{\max})$ \textbf{(back off)} else $\kappa \gets C$
-  \Else{} take a \textbf{front} step (backward through last two matrices
-  only)
-    \If{$\ge \kappa$ front steps since last burst, checked every $C$}
-      \If{relative EMA improvement since last check ${<}\tau$} start a burst
-      of $B$ full steps \EndIf
-    \EndIf
-  \EndIf
-\EndFor
-\end{algorithmic}
-\end{algorithm}
-
 \paragraph{Protocol.} MLPs with four hidden layers of width 512; SGD momentum
 $0.9$, learning rate $0.05$, global gradient-norm clipping at $1.0$; 20
 epochs (MNIST) / 30 epochs (CIFAR-10); 3 seeds. \fw{} uses $C{=}50$,
@@ -30,9 +9,11 @@ $B{=}50$, $\kappa_{\max}{=}2000$, $\tau \in \{0.005, 0.01, 0.02, 0.05\}$
 Baselines: \textsc{full} (BP every step), \textsc{front} (never full),
 \textsc{periodic}-$N$ (full every $N$th step, $N \in \{2,5,10,20,50\}$),
 \lpft{} (front until a switch point, then full; switch swept over
-$\{0.5, 0.8, 0.9, 0.95, 0.96\}$ of training), and \bcd{} (identical trigger
+$\{0.5, 0.8, 0.9, 0.95, 0.96\}$ of training), \bcd{} (identical trigger
 and backoff, but bursts update the trunk with the head frozen---the
-complementary-block variant).
+complementary-block variant), and \textsc{ratchet}($r$), which is compared
+on the backward-compute axis and therefore reported separately from
+Table~\ref{tab:exp2}.
 
 \begin{table}[t]
 \centering
@@ -122,10 +103,13 @@ back-propagates error into a trunk it has drifted away from, with trunk
 gradient norms growing to ${\sim}20\times$ their initial scale before the
 collapse, driving hidden units dead. \fw{}'s \emph{consecutive} bursts partly
 mitigate this (the trunk re-equilibrates within a burst), and global
-norm-clipping removes it entirely; all reported runs clip at $1.0$. This is a
-from-scratch analogue of the feature-distortion argument for \lpft{}
-\citep{kumar2022finetuning}, here observable as a training-stability failure
-rather than an out-of-distribution effect.
+norm-clipping removes it entirely; all reported runs clip at $1.0$. This
+is a from-scratch analogue of the feature-distortion argument for \lpft{}
+\citep{kumar2022finetuning}, here observable as a training-stability
+failure rather than an out-of-distribution effect. Clipping closes the
+issue under SGD; Section~\ref{sec:exp3} shows that under Adam it does not,
+which is where the schedule's interaction with the optimizer becomes the
+story.
 
 \paragraph{Compute accounting.} We report budgets in backward
 multiply--accumulates (Section~\ref{sec:framework}) because end-to-end wall

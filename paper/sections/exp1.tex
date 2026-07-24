@@ -87,24 +87,6 @@ rule still matches the trained-readout control.}
 \label{fig:sparsity}
 \end{figure}
 
-\subsection{Two failure modes worth documenting}
-\label{sec:exp1-stability}
-
-\paragraph{The sign factor in straight-through mask gradients.} Selecting the
-top-$k$ mask by $|s|$ while passing the straight-through gradient to $s$
-directly drops the $\partial|s|/\partial s = \operatorname{sign}(s)$ factor;
-every negative-score synapse then moves in the wrong direction, and learning
-sits at chance. Applying $|\cdot|$ \emph{before} the straight-through
-operator (so autodiff supplies the sign), or equivalently multiplying manual
-updates by $\operatorname{sign}(s)$, restores learning entirely. We flag this
-because the failure is silent: losses hover near initialization and no error
-is raised.
-
-\paragraph{Hebbian runaway and its stabilization.} A naive three-factor rule
-diverges here: with ReLU activity the eligibility $a_i x_j$ is non-negative,
-so reinforced co-activations grow activations, which grow eligibilities,
-until logits saturate (magnitudes ${>}10^2$ within 200 steps), the softmax
-collapses to one-hot, exploration dies, and accuracy pins at chance.
-Batch-centered (covariance) eligibilities, RMS-normalized per-layer updates,
-and a loss-based rather than sampled-action reward stabilize it; the
-stabilized rule learns but remains far below the vector-signal rules.
+Two implementation failure modes of the mask-search rules---a silent sign
+error in straight-through mask gradients, and Hebbian runaway---are
+documented in Appendix~\ref{app:failures}.

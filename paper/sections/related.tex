@@ -27,9 +27,8 @@ express \fw{}'s backoff, which handles unproductive expensive phases by
 raising the evidence bar for the next one. Block
 coordinate descent with greedy (Gauss--Southwell) selection
 \citep{nutini2015coordinate} is the classical frame for adaptive block
-updates; its theory assumes uniform per-block costs, whereas the cheap block
-here is the \emph{only} one admitting depth truncation
-(Section~\ref{sec:framework})---the cost asymmetry is the problem statement.
+updates; Section~\ref{sec:framework} explains why its uniform-cost
+assumption fails here.
 
 \paragraph{Supermasks and random features (origins).} \citet{frankle2019lottery}
 showed dense networks contain sparse trainable subnetworks;

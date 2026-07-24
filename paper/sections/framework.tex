@@ -55,3 +55,29 @@ correction. We call the cap $\kappa_{\max}$ on this backoff the
 dial. Bursts are \emph{consecutive} full steps by design; the
 experiments show that consecutiveness is not an implementation convenience
 but a stability requirement (Sections~\ref{sec:exp2}, \ref{sec:exp3}).
+
+\begin{algorithm}[t]
+\caption{\fw{}: plateau-triggered bursts with cried-wolf backoff}
+\label{alg:fw}
+\begin{algorithmic}[1]
+\State EMA loss $\bar L$; check interval $C$; threshold $\tau$; burst length
+$B$; cooldown $\kappa \gets C$
+\For{each minibatch}
+  \If{in burst} take a \textbf{full} step; on burst end: if the burst's
+  relative EMA improvement ${<}\tau$ then $\kappa \gets \min(2\kappa,
+  \kappa_{\max})$ \textbf{(back off)} else $\kappa \gets C$
+  \Else{} take a \textbf{front} step (backward through last two matrices
+  only)
+    \If{$\ge \kappa$ front steps since last burst, checked every $C$}
+      \If{relative EMA improvement since last check ${<}\tau$} start a burst
+      of $B$ full steps \EndIf
+    \EndIf
+  \EndIf
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+We evaluate in three stages: controlled MLPs under SGD
+(Section~\ref{sec:exp2}); a transformer under AdamW, where the optimizer
+itself enters the mechanism (Section~\ref{sec:exp3}); and the wiring study
+that supplied the method's premise (Section~\ref{sec:exp1}).

@@ -50,9 +50,8 @@ ${\sim}4\%$ full-backprop budget beats matched periodic schedules and
 one-switch linear-probe-then-fine-tune (\lpft{}) by margins that grow with
 task difficulty ($+1.5$ to $+6.1$ points). On a 10.8M-parameter transformer
 language model, \fw{} with ${\sim}6\%$ of steps at full depth matches
-\lpft{} spending $50\%$, and and only the trigger family (\fw{} and its
-\bcd{} ablation) improves at low budget on never back-propagating deep at
-all; a single backoff parameter further
+\lpft{} spending $50\%$, and only the trigger-driven schedules improve at low budget on never
+back-propagating deep at all; a single backoff parameter further
 acts as a budget dial, tracing a monotone compute--quality curve
 ($6$--$49\%$ budgets) that dominates one-switch and periodic schedules at
 every tested budget on the transformer. Three mechanism findings accompany the
@@ -101,5 +100,27 @@ throughout---consumes under ten GPU-hours end to end. Datasets: MNIST
 tiny Shakespeare corpus. Exact commands for every run are recorded in the
 repository's \texttt{scripts/} directory; per-run CSV logs (including
 wall-clock times) are in \texttt{results/}.
+
+\section{Two failure modes of mask-search rules}
+\label{app:failures}
+
+\paragraph{The sign factor in straight-through mask gradients.} Selecting the
+top-$k$ mask by $|s|$ while passing the straight-through gradient to $s$
+directly drops the $\partial|s|/\partial s = \operatorname{sign}(s)$ factor;
+every negative-score synapse then moves in the wrong direction, and learning
+sits at chance. Applying $|\cdot|$ \emph{before} the straight-through
+operator (so autodiff supplies the sign), or equivalently multiplying manual
+updates by $\operatorname{sign}(s)$, restores learning entirely. We flag this
+because the failure is silent: losses hover near initialization and no error
+is raised.
+
+\paragraph{Hebbian runaway and its stabilization.} A naive three-factor rule
+diverges here: with ReLU activity the eligibility $a_i x_j$ is non-negative,
+so reinforced co-activations grow activations, which grow eligibilities,
+until logits saturate (magnitudes ${>}10^2$ within 200 steps), the softmax
+collapses to one-hot, exploration dies, and accuracy pins at chance.
+Batch-centered (covariance) eligibilities, RMS-normalized per-layer updates,
+and a loss-based rather than sampled-action reward stabilize it; the
+stabilized rule learns but remains far below the vector-signal rules.
 
 \end{document}
