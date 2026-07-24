@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this code or results, please cite it as below."
-title: "front-wheeler: How Much Backpropagation Do You Need?"
+title: "front-wheeler: Training with Full Backpropagation Only When It Pays"
 authors:
   - family-names: Alramadan
     given-names: Mamdouh
@@ -8,10 +8,10 @@ authors:
     email: research@xtam.ai
 repository-code: "https://github.com/XTAM-AI/front-wheeler"
 license: MIT
-date-released: "2026-07-23"
+date-released: "2026-07-24"
 preferred-citation:
   type: article
-  title: "How Much Backpropagation Do You Need? The Price of Local and Infrequent Credit Assignment in Two Controlled Settings"
+  title: "Front Wheeler: Training with Full Backpropagation Only When It Pays"
   authors:
     - family-names: Alramadan
       given-names: Mamdouh
