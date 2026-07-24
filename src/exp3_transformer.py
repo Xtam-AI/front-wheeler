@@ -197,6 +197,10 @@ def run(args):
             mode = "full" if step % args.period == 0 else "front"
         elif args.schedule == "lpft":
             mode = "front" if step < switch_step else "full"
+        elif args.schedule == "ftlp":  # reverse lpft: deep first, cheap after
+            mode = "full" if step < switch_step else "front"
+        elif args.schedule == "pburst":  # open-loop bursts, no trigger
+            mode = "full" if (step % args.pburst_period) < args.burst else "front"
         elif args.schedule == "ratchet":
             n_freezable = args.layers - 1
             frac = min(1.0, step / max(1, int(args.ratchet_by * args.steps)))
@@ -284,7 +288,9 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--schedule", required=True,
                    choices=["full", "front", "periodic", "fw", "lpft", "bcd",
-                            "ratchet"])
+                            "ratchet", "ftlp", "pburst"])
+    p.add_argument("--pburst-period", type=int, default=833,
+                   help="pburst: burst of --burst full steps every this many steps")
     p.add_argument("--ratchet-by", type=float, default=0.3,
                    help="ratchet: fraction of training by which all-but-front is frozen")
     p.add_argument("--seed", type=int, default=0)

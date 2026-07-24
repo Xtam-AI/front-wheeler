@@ -147,6 +147,12 @@ def run(args):
             elif args.schedule == "lpft":
                 # linear-probe-then-finetune: one switch, front -> full
                 mode = "front" if step < switch_step else "full"
+            elif args.schedule == "ftlp":
+                # reverse lpft: deep first, cheap after
+                mode = "full" if step < switch_step else "front"
+            elif args.schedule == "pburst":
+                # open-loop bursts: no trigger, fixed cadence
+                mode = "full" if (step % args.pburst_period) < args.burst else "front"
             elif args.schedule == "ratchet":
                 # progressive bottom-up freezing (AutoFreeze/Egeria-style
                 # fixed ratchet): all-but-front frozen by ratchet_by * T
@@ -195,7 +201,9 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--schedule", required=True,
                    choices=["full", "front", "periodic", "fw", "lpft", "bcd",
-                            "ratchet"])
+                            "ratchet", "ftlp", "pburst"])
+    p.add_argument("--pburst-period", type=int, default=833,
+                   help="pburst: burst of --burst full steps every this many steps")
     p.add_argument("--ratchet-by", type=float, default=0.3,
                    help="ratchet: fraction of training by which all-but-front is frozen")
     p.add_argument("--switch-frac", type=float, default=0.9,
