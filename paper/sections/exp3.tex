@@ -11,6 +11,42 @@ embedding so front steps cannot leak trunk updates through weight tying.
 Front steps run the trunk under \texttt{no\_grad}. Schedules as in
 Section~\ref{sec:exp2}; metric is validation loss.
 
+\begin{table}[t]
+\centering
+\caption{Transformer results matrix (validation loss, mean $\pm$ std,
+3 seeds). Backward compute is the honest cost axis (fraction of
+\textsc{full}'s backward MACs); deep-step budget is shown for intuition
+and is not comparable for \textsc{ratchet}, whose partial-depth steps it
+ignores. Read comparisons within matched backward-compute tiers.}
+\label{tab:exp3matrix}
+\begin{tabular}{lccc}
+\toprule
+Schedule (setting) & Deep steps & Backward compute & Val.\ loss \\
+\midrule
+\textsc{full} & $100\%$ & $100\%$ & $1.488 \pm 0.008$ \\
+\textsc{front} & $0\%$ & $17\%$ & $1.836 \pm 0.004$ \\
+\midrule
+\fw{}($\tau{=}0.02$, $\kappa_{\max}{=}2000$) & $6\%$ & $22\%$ & $1.773 \pm 0.013$ \\
+\fw{}($\tau{=}0.1$, $\kappa_{\max}{=}200$) & $20\%$ & $33\%$ & $1.717 \pm 0.009$ \\
+\fw{}($\tau{=}0.1$, $\kappa_{\max}{=}100$) & $33\%$ & $44\%$ & $1.668 \pm 0.010$ \\
+\fw{}($\tau{=}0.1$, $\kappa_{\max}{=}50$) & $49\%$ & $58\%$ & $1.596 \pm 0.009$ \\
+\bcd{} & $6\%$ & $21\%$ & $1.797 \pm 0.010$ \\
+\midrule
+\lpft{}($0.9$) & $10\%$ & $25\%$ & $1.832 \pm 0.004$ \\
+\lpft{}($0.8$) & $20\%$ & $33\%$ & $1.823 \pm 0.002$ \\
+\lpft{}($0.5$) & $50\%$ & $58\%$ & $1.766 \pm 0.007$ \\
+\midrule
+\textsc{periodic}-50 & $2\%$ & $19\%$ & $1.873 \pm 0.031$ \\
+\textsc{periodic}-20 & $5\%$ & $21\%$ & $1.910 \pm 0.059$ \\
+\textsc{periodic}-10 & $10\%$ & $25\%$ & $2.047 \pm 0.127$ \\
+\textsc{periodic}-5 & $20\%$ & $33\%$ & $2.404 \pm 0.046$ \\
+\midrule
+\textsc{ratchet}($0.1$) & $2\%$ & $22\%$ & $2.271 \pm 0.042$ \\
+\textsc{ratchet}($0.3$) & $6\%$ & $32\%$ & $1.696 \pm 0.009$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.72\textwidth]{exp3_pareto}
@@ -24,8 +60,9 @@ spent. \fw{} is the only low-budget schedule below the front-only line.}
 \end{figure}
 
 \paragraph{Only adaptive bursts convert a small budget into progress.}
-Full BP reaches $1.488 \pm 0.008$; front-only $1.836 \pm 0.004$
-(Figure~\ref{fig:exp3pareto}). Between those anchors the fixed schedules
+Table~\ref{tab:exp3matrix} is the canonical comparison; read it within
+matched backward-compute tiers. \textsc{full} reaches $1.488 \pm 0.008$;
+\textsc{front} $1.836 \pm 0.004$ (Figure~\ref{fig:exp3pareto}). Between those anchors the fixed schedules
 barely move: \lpft{} at a $10\%$ budget gains $0.004$ over front-only
 ($1.832 \pm 0.004$), and periodic interleaving is \emph{destructive} at
 every budget tested---$1.87$ at $2\%$, worsening monotonically with
@@ -58,13 +95,13 @@ specific to the transformer. One parameter thus selects the
 compute--quality operating point, with no retuning of the trigger.
 
 \paragraph{The ratchet is fragile where \fw{} is not.} At \fw{}'s exact
-backward-FLOP budget, ratchet-fast collapses to $2.271 \pm 0.05$---worse
+backward-FLOP budget, \textsc{ratchet}($0.1$) collapses to $2.271 \pm 0.05$---worse
 than periodic---because it freezes five of six blocks before the trunk has
-learned anything, and a ratchet cannot un-freeze. Ratchet-slow does beat
+learned anything, and a ratchet cannot un-freeze. \textsc{ratchet}($0.3$) does beat
 \fw{}'s default ($1.696$ vs.\ $1.773$) at $1.46\times$ the compute, and
 remains slightly ahead of the \fw{} dial at matched mid-budget FLOPs
 ($1.696$ at $555$k~GF vs.\ $1.717$ at $584$k~GF): a \emph{well-timed}
-ratchet is genuinely competitive in the mid-budget regime. Together with the MLP results
+\textsc{ratchet} is genuinely competitive in the mid-budget regime. Together with the MLP results
 (Section~\ref{sec:exp2}), the pattern is consistent: a well-timed ratchet
 is competitive, but its timing is task-critical and unrecoverable when
 wrong, whereas \fw{} ran identical trigger hyperparameters on every
@@ -73,7 +110,7 @@ freezing cannot.
 
 \paragraph{Measured resources validate the cost model---with one caveat.}
 End-to-end single runs (2{,}000 steps, identical hardware) measure: full BP
-$98.4$s, \fw{} $49.3$s, fast ratchet $49.7$s, front-only $46.6$s---\fw{}
+$98.4$s, \fw{} $49.3$s, \textsc{ratchet}($0.1$) $49.7$s, front-only $46.6$s---\fw{}
 and the flops-matched ratchet are equal-cost in wall clock to within $1\%$,
 and \fw{} delivers a real $2.0\times$ end-to-end speedup over full BP at
 this scale (per-step: $23.3$ms front vs.\ $49.2$ms full). The caveat is

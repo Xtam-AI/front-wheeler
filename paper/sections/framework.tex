@@ -22,6 +22,18 @@ scheme (front vs.\ everything) can. Block-coordinate theory assumes uniform
 per-block costs \citep{nutini2015coordinate}; the cost asymmetry \emph{is}
 the scheduling problem.
 
+\paragraph{Terminology and comparison protocol.} Schedules are written
+with their parameters: \textsc{periodic}-$N$ (one full step every $N$),
+\lpft{}($s$) (front until fraction $s$ of training, then full),
+\textsc{ratchet}($r$) (all-but-front frozen by fraction $r$ of training),
+\fw{}($\tau$, $\kappa_{\max}$) (trigger threshold and cooldown cap), and
+\bcd{} (as \fw{} with trunk-only bursts). Cost is reported on two axes:
+\emph{deep-step budget} (fraction of steps at full depth; meaningful only
+for schedules whose steps are binary front/full) and \emph{backward
+compute} (total backward MACs, as a fraction of \textsc{full}'s; defined
+for every schedule). All cross-schedule comparisons in this paper are made
+at matched backward compute; deep-step budget is reported for intuition.
+
 \paragraph{The schedule as a controller.} Training chooses per step between
 a front step and a full step; the budget is the fraction of full-depth
 steps. The greedy, cost-normalized rule would take front steps while
@@ -38,6 +50,8 @@ $c_{\mathrm{full}}$. \fw{} (Algorithm~\ref{alg:fw}) therefore treats each
 burst as both a progress step and a \emph{measurement}: an unproductive
 burst reveals that the plateau is global, and exponential backoff raises the
 evidence threshold for the next alarm---the ``boy who cried wolf''
-correction. Bursts are \emph{consecutive} full steps by design; the
+correction. We call the cap $\kappa_{\max}$ on this backoff the
+\emph{governor}; Section~\ref{sec:exp3} shows it doubles as the budget
+dial. Bursts are \emph{consecutive} full steps by design; the
 experiments show that consecutiveness is not an implementation convenience
 but a stability requirement (Sections~\ref{sec:exp2}, \ref{sec:exp3}).

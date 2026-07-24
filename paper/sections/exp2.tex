@@ -49,8 +49,8 @@ Schedule & Budget & MNIST & CIFAR-10 \\
 \fw{} (best $\tau$) & $4.1$--$4.8\%$ & $\mathbf{97.1}$ & $\mathbf{51.6}$ \\
 \bcd{} & $4.3$--$4.5\%$ & $97.2$ & $50.5$ \\
 \textsc{periodic}-20 & $5\%$ & $95.6$ & $46.5$ \\
-\lpft{} (switch $0.95$) & $5\%$ & $95.7$ & $47.1$ \\
-\lpft{} (switch $0.96$) & $4\%$ & $95.1$ & $45.6$ \\
+\lpft{}($0.95$) & $5\%$ & $95.7$ & $47.1$ \\
+\lpft{}($0.96$) & $4\%$ & $95.1$ & $45.6$ \\
 \midrule
 \textsc{front} (anchor) & $0\%$ & $94.9$ & $45.3$ \\
 \bottomrule
@@ -93,17 +93,17 @@ pays precisely in the scarce-budget regime.
 
 \paragraph{The freezing ratchet: strong when timed right, and timing is
 task-critical.} The progressive-freezing baseline (\textsc{ratchet};
-Section~\ref{sec:framework}) comes in two settings---\emph{ratchet-fast}
-(all-but-front frozen by $10\%$ of training) and \emph{ratchet-slow} (by
-$30\%$)---and is compared in backward-FLOPs, since its per-step cost varies
-as layers freeze. At matched compute, ratchet-fast exceeds \fw{} on MNIST
+Section~\ref{sec:framework}) comes in two settings---\textsc{ratchet}($0.1$)
+(all-but-front frozen by $10\%$ of training) and \textsc{ratchet}($0.3$)
+(by $30\%$)---and is compared in backward compute, since its per-step cost varies
+as layers freeze. At matched compute, \textsc{ratchet}($0.1$) exceeds \fw{} on MNIST
 consistently but not significantly ($97.3$ vs.\ $97.1$, $+0.2$ in all
-three seed pairings, within one seed-std; ratchet-slow reaches $98.2$ at a
+three seed pairings, within one seed-std; \textsc{ratchet}($0.3$) reaches $98.2$ at a
 third of full BP's FLOPs) and trails \fw{} on
 CIFAR-10 ($50.8$ vs.\ $51.6$ at matched FLOPs). We therefore do not claim
 \fw{} beats all fixed schedules on easy tasks; the decisive contrast
-appears on the transformer (Section~\ref{sec:exp3}), where the same fast
-ratchet setting is catastrophic---frozen-forever layers cannot recover from
+appears on the transformer (Section~\ref{sec:exp3}), where the same
+\textsc{ratchet}($0.1$) setting is catastrophic---frozen-forever layers cannot recover from
 premature freezing, while \fw{}'s bursts are revocable by construction.
 
 \paragraph{The trigger, not the block, carries the benefit.} \bcd{} shares
