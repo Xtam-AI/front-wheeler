@@ -19,6 +19,7 @@ from common import CSVLogger, DATA_DIR, RESULTS_DIR, get_device, set_seed
 
 SHAKESPEARE_URL = ("https://raw.githubusercontent.com/karpathy/char-rnn/"
                    "master/data/tinyshakespeare/input.txt")
+ALICE_URL = "https://www.gutenberg.org/files/11/11-0.txt"
 
 
 # ---------------------------------------------------------------- model
@@ -89,17 +90,34 @@ class CharGPT(nn.Module):
 
 # ---------------------------------------------------------------- data
 
-def load_data(device):
-    path = os.path.join(DATA_DIR, "tinyshakespeare.txt")
+def _fetch(fname, url):
+    path = os.path.join(DATA_DIR, fname)
     if not os.path.exists(path):
         os.makedirs(DATA_DIR, exist_ok=True)
-        urllib.request.urlretrieve(SHAKESPEARE_URL, path)
-    text = open(path, encoding="utf-8").read()
-    chars = sorted(set(text))
+        urllib.request.urlretrieve(url, path)
+    return open(path, encoding="utf-8", errors="ignore").read()
+
+
+def load_data(device, shift=False):
+    """Returns (train_a, val_a, vocab) or, with shift, also (train_b, val_b):
+    corpus A = tiny Shakespeare, corpus B = Alice in Wonderland, joint vocab."""
+    text_a = _fetch("tinyshakespeare.txt", SHAKESPEARE_URL)
+    if not shift:
+        chars = sorted(set(text_a))
+        stoi = {c: i for i, c in enumerate(chars)}
+        data = torch.tensor([stoi[c] for c in text_a], dtype=torch.long)
+        n = int(0.9 * len(data))
+        return data[:n].to(device), data[n:].to(device), len(chars)
+    text_b = _fetch("alice.txt", ALICE_URL)
+    chars = sorted(set(text_a) | set(text_b))
     stoi = {c: i for i, c in enumerate(chars)}
-    data = torch.tensor([stoi[c] for c in text], dtype=torch.long)
-    n = int(0.9 * len(data))
-    return data[:n].to(device), data[n:].to(device), len(chars)
+    def enc(t):
+        d = torch.tensor([stoi[c] for c in t], dtype=torch.long)
+        n = int(0.9 * len(d))
+        return d[:n].to(device), d[n:].to(device)
+    ta, va = enc(text_a)
+    tb, vb = enc(text_b)
+    return (ta, va, tb, vb), len(chars)
 
 
 def get_batch(data, bs, ctx, gen):
@@ -145,7 +163,11 @@ def bwd_macs_per_token(d, vocab, layers, mode, n_frozen=None):
 def run(args):
     set_seed(args.seed)
     device = get_device()
-    train, val, vocab = load_data(device)
+    if args.shift_at > 0:
+        (train_a, val_a, train_b, val_b), vocab = load_data(device, shift=True)
+        train, val = train_a, val_a
+    else:
+        train, val, vocab = load_data(device)
     model = CharGPT(vocab, args.dmodel, args.heads, args.layers,
                     args.ctx, args.dropout).to(device)
     front_params = (list(model.blocks[-1].parameters())
@@ -189,6 +211,8 @@ def run(args):
     steps_since_burst = 0
 
     for step in range(args.steps):
+        if args.shift_at > 0 and step == args.shift_at:
+            train, val = train_b, val_b   # the world changes; schedules are not told
         if args.schedule == "full":
             mode = "full"
         elif args.schedule == "front":
@@ -291,6 +315,8 @@ def main():
                             "ratchet", "ftlp", "pburst"])
     p.add_argument("--pburst-period", type=int, default=833,
                    help="pburst: burst of --burst full steps every this many steps")
+    p.add_argument("--shift-at", type=int, default=0,
+                   help="if >0, switch training corpus at this step (A->B)")
     p.add_argument("--ratchet-by", type=float, default=0.3,
                    help="ratchet: fraction of training by which all-but-front is frozen")
     p.add_argument("--seed", type=int, default=0)
