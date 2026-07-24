@@ -61,8 +61,8 @@ freezing ratchet that slightly exceeds it on MNIST but whose required
 timing proves catastrophic when transferred across testbeds; its failures
 localize to mechanisms we could measure
 (isolated-step churn, stale optimizer moments) and repair (bursts, episodic
-state). Credit assignment is a budgeted resource; \fw{} is a first
-controller for spending it.
+state). Credit assignment is a budgeted resource; \fw{} is a first controller for
+spending it, and its backoff cap is the dial that chooses the budget.
 
 \paragraph{Reproducibility.} Code, run logs, and all raw result CSVs are
 available at \url{https://github.com/XTAM-AI/front-wheeler}. Every number in

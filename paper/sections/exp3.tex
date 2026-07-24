@@ -40,6 +40,23 @@ of the front-to-full gap here, vs.\ ${\sim}$two-thirds on MLPs. Deep
 trunks need more deep training on harder tasks; \fw{} trades quality for
 compute rather than matching full BP.
 
+\paragraph{The backoff is a budget dial; the threshold is a floor.}
+Sweeping the trigger threshold $\tau$ across two orders of magnitude
+($0.005 \to 1.0$) with the governor active barely moves the operating
+point: the backoff cancels eager alarms and the budget stays pinned at
+$4$--$6\%$ of steps. The lever that works is the governor itself: sweeping
+the cooldown cap $\kappa_{\max}$ from $2000$ down to $50$ traces a smooth,
+monotone Pareto curve---budgets $6\% \to 49\%$ of steps, validation loss
+$1.772 \to 1.596$ (Figure~\ref{fig:exp3pareto})---that dominates the fixed
+schedules at every tested budget on the transformer: at an $8\%$ budget the
+dial already matches \lpft{} spending $50\%$, and its $49\%$ endpoint
+($1.596 \pm 0.009$) closes more than two-thirds of the front-to-full gap
+at half the deep-step budget. On the CIFAR-10 MLP the dial's high-budget
+endpoint is comparable to, but does not beat, the best fixed $50\%$
+schedules ($53.9$ vs.\ $54.2$ for \lpft{}); the dominance claim is
+specific to the transformer. One parameter thus selects the
+compute--quality operating point, with no retuning of the trigger.
+
 \paragraph{The ratchet is fragile where \fw{} is not.} At \fw{}'s exact
 backward-FLOP budget, the fast freezing ratchet (all-but-front frozen by
 $10\%$ of training) collapses to $2.271 \pm 0.05$---worse than

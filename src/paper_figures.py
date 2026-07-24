@@ -203,7 +203,7 @@ def fig_pareto_exp3():
     fig, ax = plt.subplots(figsize=(4.6, 2.9))
     for fam, color, lab, (li, dx, dy, ha) in [
             ("periodic", RED, "periodic-N", (3, -2, 6, "right")),
-            ("lpft", AQUA, "LP-FT", (3, 0, -11, "center"))]:
+            ("lpft", AQUA, "LP-FT", (2, 0, -10, "center"))]:
         pts = sorted([(EXP3_BUDGET[v], r.val, r.sd) for v, r in s.iterrows()
                       if v in EXP3_BUDGET and v.startswith(fam)])
         x, y, e = zip(*pts)
@@ -211,15 +211,30 @@ def fig_pareto_exp3():
                     elinewidth=0.8)
         ax.annotate(lab, (x[li], y[li]), xytext=(dx, dy),
                     textcoords="offset points", color=color, fontsize=7, ha=ha)
-    fws = f[f.variant.str.startswith("fw")]
+    fws = f[f.variant.isin(["fw_tau0005", "fw_tau002", "fw_tau005"])]
     fx, fy = fws.frac.mean(), fws.val_loss.mean()
     ax.errorbar([fx], [fy], yerr=[[fy - fws.val_loss.min()],
                                   [fws.val_loss.max() - fy]],
                 color=BLUE, marker="D", ms=5.5, ls="none", capsize=2.5,
                 elinewidth=0.9)
-    ax.annotate("FW (adaptive)", (fx, fws.val_loss.min()), xytext=(0, -13),
+    ax.annotate("FW (default)", (fx, fws.val_loss.min()), xytext=(-2, -13),
                 textcoords="offset points", color=BLUE, fontsize=7,
                 ha="center", fontweight="bold")
+    # governor dial: max_cooldown sweep at tau=0.1 traces the Pareto curve
+    gov = f[f.variant.str.contains("gov|lever01")]
+    mc_map = {"fw_gov100": 100, "fw_gov200": 200, "fw_gov400": 400,
+              "fw_gov800": 800, "fw_lever01": 2000, "fw_lever01nb": 50}
+    gov = gov[gov.variant.isin(mc_map)]
+    gs = gov.groupby("variant").agg(val=("val_loss", "mean"),
+                                    sd=("val_loss", "std"),
+                                    frac=("frac", "mean"))
+    pts = sorted(zip(gs.frac, gs.val, gs.sd))
+    gx, gy, ge = zip(*pts)
+    ax.errorbar(gx, gy, yerr=ge, color=BLUE, marker="D", ms=3, capsize=2,
+                elinewidth=0.7, lw=1.2, ls=(0, (4, 2)))
+    ax.annotate("FW governor dial", (gx[-1], gy[-1]), xytext=(2, -11),
+                textcoords="offset points", color=BLUE, fontsize=7,
+                ha="right", fontweight="bold")
     b = s.loc["bcd"]
     ax.errorbar([b.frac], [b.val], yerr=[b.sd], color=VIOLET, marker="s",
                 ms=4, ls="none", capsize=2, elinewidth=0.8,

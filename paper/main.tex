@@ -51,7 +51,10 @@ one-switch linear-probe-then-fine-tune (\lpft{}) by margins that grow with
 task difficulty ($+1.5$ to $+6.1$ points). On a 10.8M-parameter transformer
 language model, \fw{} with ${\sim}6\%$ of steps at full depth matches
 \lpft{} spending $50\%$, and is the only low-budget schedule that improves
-on never back-propagating deep at all. Three mechanism findings accompany the
+on never back-propagating deep at all; a single backoff parameter further
+acts as a budget dial, tracing a monotone compute--quality curve
+($6$--$49\%$ budgets) that dominates every fixed schedule we tested on the
+transformer. Three mechanism findings accompany the
 method: (i) \emph{isolated} full-depth steps interleaved with cheap steps
 are actively destructive---collapsing MLPs via dead units and degrading the
 transformer monotonically with interleaving frequency---and burst structure
