@@ -1,0 +1,81 @@
+\section*{Glossary}
+\label{sec:glossary}
+\addcontentsline{toc}{section}{Glossary}
+
+Terms and acronyms used throughout, in order of first appearance. Schedule
+names and their parameters are defined in Section~\ref{sec:framework}.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{p{0.27\textwidth}p{0.66\textwidth}}
+\toprule
+\multicolumn{2}{l}{\emph{Method and schedule terms}} \\
+\midrule
+BP & backpropagation: the standard full-depth backward pass. \\
+\fw{} (front wheeler) & the proposed schedule: front steps by default,
+plateau-triggered bursts of full BP (Algorithm~\ref{alg:fw}). \\
+front / trunk / head & the \emph{front} is the last hidden layer (or last
+transformer block) plus the output head; the \emph{trunk} is everything
+below it; the \emph{head} is the final output projection. \\
+front step / full step & a front step back-propagates through the front
+only (trunk forwarded without gradients); a full step through everything. \\
+burst & a run of consecutive full steps fired by the trigger. \\
+trigger, $\tau$ & the plateau detector: a burst fires when the relative
+improvement of the training-loss EMA over a check window falls below the
+threshold $\tau$. \\
+backoff / governor, $\kappa_{\max}$ & if a burst itself improves the loss
+by less than $\tau$, the required front-phase length before the next check
+doubles (backoff), up to the cap $\kappa_{\max}$ (the governor), which
+doubles as the budget dial. \\
+deep-step budget & fraction of training steps taken at full depth. \\
+backward compute & total backward multiply--accumulates, as a fraction of
+\textsc{full}'s; the cost axis used for all cross-schedule comparisons. \\
+\midrule
+\multicolumn{2}{l}{\emph{Baselines (parameters in
+Section~\ref{sec:framework})}} \\
+\midrule
+\textsc{full} / \textsc{front} & full BP every step / front steps only. \\
+\textsc{periodic}-$N$ & one full step every $N$ steps. \\
+\lpft{}($s$) & linear probing then fine-tuning: front steps until fraction
+$s$ of training, full steps after; one switch. \\
+\textsc{ratchet}($r$) & progressive bottom-up freezing: layers freeze
+permanently, all-but-front frozen by fraction $r$ of training. \\
+\bcd{} & block-coordinate ablation of \fw{}: identical trigger, but bursts
+update only the trunk (head frozen). \\
+\midrule
+\multicolumn{2}{l}{\emph{Optimization and cost terms}} \\
+\midrule
+EMA & exponential moving average. \\
+MAC / GEMM & multiply--accumulate operation / general matrix multiply; we
+count backward cost as ${\sim}2$ GEMMs per weight matrix. \\
+Adam(W) moments $m, v$ & Adam's per-parameter first and second gradient
+moment estimates (EMAs with rates $\beta_1, \beta_2$); AdamW adds decoupled
+weight decay. \\
+episodic optimizer state & trunk moments that are reset at burst entry (and
+warmed up) rather than persisting across inter-burst gaps. \\
+dead-ReLU collapse & failure mode where hidden units' pre-activations go
+permanently negative, zeroing their gradients and output. \\
+Gauss--Southwell rule & greedy block-coordinate selection: update the block
+with the largest gradient norm. \\
+\midrule
+\multicolumn{2}{l}{\emph{Origins-study terms (Section~\ref{sec:exp1})}} \\
+\midrule
+supermask & a binary mask over a \emph{frozen, randomly initialized}
+network selected so the masked subnetwork performs the task. \\
+\ep{} (edge-popup) & gradient-based supermask search: each connection holds
+a score; the top-$k$ scores per layer are kept; scores train by BP with a
+straight-through estimator. \\
+straight-through estimator & treating a non-differentiable operation (here,
+top-$k$ selection) as identity during the backward pass. \\
+\dfa{} & direct feedback alignment: each layer's error signal is a fixed
+random projection of the output error, avoiding weight transport and the
+chained backward pass. \\
+\rmhebb{} & reward-modulated Hebbian rule: hidden layers receive one global
+scalar per sample modulating a local (pre $\times$ post) eligibility trace;
+a three-factor rule. \\
+eligibility trace & the locally available co-activity term a modulatory
+signal multiplies in three-factor learning rules. \\
+\bottomrule
+\end{tabular}
+\end{table}
