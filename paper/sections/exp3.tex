@@ -40,6 +40,19 @@ of the front-to-full gap here, vs.\ ${\sim}$two-thirds on MLPs. Deep
 trunks need more deep training on harder tasks; \fw{} trades quality for
 compute rather than matching full BP.
 
+\paragraph{The ratchet is fragile where \fw{} is not.} At \fw{}'s exact
+backward-FLOP budget, the fast freezing ratchet (all-but-front frozen by
+$10\%$ of training) collapses to $2.271 \pm 0.05$---worse than
+periodic---because it freezes five of six blocks before the trunk has
+learned anything, and a ratchet cannot un-freeze. The slow setting
+(freeze by $30\%$) does beat \fw{} ($1.696$ vs.\ $1.773$) but requires
+$1.46\times$ \fw{}'s compute to do so. Together with the MLP results
+(Section~\ref{sec:exp2}), the pattern is consistent: a well-timed ratchet
+is competitive, but its timing is task-critical and unrecoverable when
+wrong, whereas \fw{} ran identical trigger hyperparameters on every
+testbed in this paper. Revocable bursts buy robustness that irrevocable
+freezing cannot.
+
 \paragraph{Interleaving toxicity is optimizer-dependent and clipping does
 not save Adam.} The periodic failure is the MLP collapse of
 Section~\ref{sec:exp2} in a new guise, with two differences. First, damage

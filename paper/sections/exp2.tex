@@ -91,6 +91,18 @@ steps, \lpft{} is the best schedule on both datasets ($98.0\%$ / $54.2\%$),
 consistent with its design regime \citep{kumar2022finetuning}. Adaptivity
 pays precisely in the scarce-budget regime.
 
+\paragraph{The freezing ratchet: strong when timed right, and timing is
+task-critical.} The progressive-freezing baseline (\textsc{ratchet};
+Section~\ref{sec:framework}) is compared in backward-FLOPs, since its
+per-step cost varies as layers freeze. At matched compute it \emph{edges}
+\fw{} on MNIST ($97.3$ vs.\ $97.1$ at ${\sim}6\%$ more FLOPs; its slower
+setting reaches $98.2$ at a third of full BP's FLOPs) and trails \fw{} on
+CIFAR-10 ($50.8$ vs.\ $51.6$ at matched FLOPs). We therefore do not claim
+\fw{} beats all fixed schedules on easy tasks; the decisive contrast
+appears on the transformer (Section~\ref{sec:exp3}), where the same fast
+ratchet setting is catastrophic---frozen-forever layers cannot recover from
+premature freezing, while \fw{}'s bursts are revocable by construction.
+
 \paragraph{The trigger, not the block, carries the benefit.} \bcd{} shares
 \fw{}'s closed-loop trigger but spends bursts on the complementary block
 (trunk only). It ties \fw{} on MNIST and trails by $1.1$ points on CIFAR-10.
