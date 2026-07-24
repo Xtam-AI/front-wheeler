@@ -70,6 +70,19 @@ wrong, whereas \fw{} ran identical trigger hyperparameters on every
 testbed in this paper. Revocable bursts buy robustness that irrevocable
 freezing cannot.
 
+\paragraph{Measured resources validate the cost model---with one caveat.}
+End-to-end single runs (2{,}000 steps, identical hardware) measure: full BP
+$98.4$s, \fw{} $49.3$s, fast ratchet $49.7$s, front-only $46.6$s---\fw{}
+and the flops-matched ratchet are equal-cost in wall clock to within $1\%$,
+and \fw{} delivers a real $2.0\times$ end-to-end speedup over full BP at
+this scale (per-step: $23.3$ms front vs.\ $49.2$ms full). The caveat is
+peak activation memory: front-only peaks at $0.77$\,GB, but any schedule
+that ever takes a full-depth step---\fw{} included---peaks at $3.03$\,GB,
+because the peak is set by the deepest single step. \fw{} reduces
+\emph{average} memory and (via episodic state) trunk optimizer memory, not
+the activation peak; activation checkpointing inside bursts, which are only
+${\sim}6\%$ of steps, is the natural remedy and is future work.
+
 \paragraph{Interleaving toxicity is optimizer-dependent and clipping does
 not save Adam.} The periodic failure is the MLP collapse of
 Section~\ref{sec:exp2} in a new guise, with two differences. First, damage

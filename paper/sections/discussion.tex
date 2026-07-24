@@ -59,8 +59,8 @@ only when---a plateau says the cheap subspace is exhausted, and exponential
 backoff when a burst reveals the plateau was global. At a few percent of the
 full-backprop budget it beats or matches every fixed schedule we tested on
 MLPs and beats all of them on a transformer---the sole exception being a
-freezing ratchet that slightly exceeds it on MNIST but whose required
-timing proves catastrophic when transferred across testbeds; its failures
+freezing ratchet that exceeds it on MNIST within seed noise but whose
+required timing proves catastrophic when transferred across testbeds; its failures
 localize to mechanisms we could measure
 (isolated-step churn, stale optimizer moments) and repair (bursts, episodic
 state). Credit assignment is a budgeted resource; \fw{} is a first controller for
