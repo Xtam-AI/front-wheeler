@@ -49,8 +49,14 @@ where $P$ projects onto the front coordinates---a cost-aware
 Gauss--Southwell rule over \emph{nested} blocks. Neither side of
 \eqref{eq:greedy} is free to observe: the left is estimated by realized
 front-phase loss improvement, while the right requires paying
-$c_{\mathrm{full}}$. \fw{} (Algorithm~\ref{alg:fw}) therefore treats each
-burst as both a progress step and a \emph{measurement}: an unproductive
+$c_{\mathrm{full}}$. Concretely: the loss EMA is $\bar L_t = (1{-}\alpha)\bar L_{t-1} +
+\alpha L_t$ with $\alpha = 0.02$; at each check (every $C$ front steps,
+once past the cooldown), the trigger computes the relative improvement
+$r = (\bar L_{\mathrm{prev}} - \bar L_t)/|\bar L_{\mathrm{prev}}|$
+against the EMA at the previous check, and fires a burst of $B$ consecutive
+full steps when $r < \tau$; the same statistic evaluated over the burst
+itself decides the backoff. \fw{} (Algorithm~\ref{alg:fw}) therefore
+treats each burst as both a progress step and a \emph{measurement}: an unproductive
 burst reveals that the plateau is global, and exponential backoff raises the
 evidence threshold for the next alarm---the ``boy who cried wolf''
 correction. We call the cap $\kappa_{\max}$ on this backoff the

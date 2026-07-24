@@ -44,7 +44,17 @@ transformer on 1MB of text) with three seeds; absolute numbers are far from
 competitive by design. We have not tested \fw{} at scale, under distribution
 shift, with pretrained initializations, or against learned-schedule
 baselines; the front was always the topmost block, and other cheap subspaces
-(low-rank, sparse) are untested. The origins study
+(low-rank, sparse) are untested. Two scaling questions are open. First, the
+\emph{capacity ratio}: at 6 layers the front is ${\sim}16\%$ of the
+model; at 96 layers it would be ${\sim}1\%$, and a front too small to
+absorb cheap progress would fire the trigger constantly, degenerating
+\fw{} toward \textsc{full}---defining the front dynamically as the top
+$N\%$ of layers is the natural generalization. Second, the
+\emph{iso-compute architecture question}: we compare schedules for a
+\emph{fixed} architecture and do not compare against simply training a
+proportionally smaller dense model at the same total FLOPs; \fw{}'s
+setting is the one where architecture is fixed by external constraints
+(inference memory, or a given pretrained checkpoint). The origins study
 (Section~\ref{sec:exp1}) is scoped by its own depth result: local wiring
 rules match dense training only in shallow networks.
 
@@ -56,8 +66,10 @@ per-burst warmup lengths, moment half-lives matched to burst spacing, and
 trust-ratio update clipping as the Adam-compatible safety net. At scale, the
 memory argument sharpens---trunk optimizer state that exists only ${\sim}6\%$ of
 the time is a different systems regime---and the natural next testbed is a
-pretrained model, where \fw{} becomes an adaptive fine-tuning schedule and
-\lpft{} is the one-switch special case it generalizes.
+pretrained model, where \fw{} becomes an adaptive fine-tuning
+schedule---a dynamic, closed-loop generalization of the static unfreezing
+choices in parameter-efficient fine-tuning---and \lpft{} is the one-switch
+special case it generalizes.
 
 \section{Conclusion}
 Most training steps do not need deep credit assignment; the hard part is

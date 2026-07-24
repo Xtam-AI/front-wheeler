@@ -46,7 +46,9 @@ of training, yet most steps may not need deep credit assignment. We propose
 hidden layer and the readout (backward through two weight matrices); a
 \emph{burst} of full-backpropagation steps fires only when a loss plateau
 signals that the cheap subspace is exhausted, with exponential backoff when a
-burst itself proves unproductive. On MLPs (MNIST, CIFAR-10), \fw{} at a
+burst itself proves unproductive.
+
+On MLPs (MNIST, CIFAR-10), \fw{} at a
 ${\sim}4\%$ full-backprop budget beats matched periodic schedules and
 one-switch linear-probe-then-fine-tune (\lpft{}) by margins that grow with
 task difficulty ($+1.5$ to $+6.1$ points). On a 10.8M-parameter transformer
@@ -67,9 +69,11 @@ method: (i) \emph{isolated} full-depth steps interleaved with cheap steps
 are actively destructive---collapsing MLPs via dead units and degrading the
 transformer monotonically with interleaving frequency---and burst structure
 is what makes deep steps safe; (ii) under Adam the damage persists despite
-gradient clipping, since Adam's scale-invariant updates neutralize clipping,
-motivating an \emph{episodic} optimizer whose moment estimates do not
-outlive inter-burst gaps; (iii) a block-coordinate ablation shows the
+gradient clipping, since Adam's scale-invariant updates neutralize
+clipping; \fw{}'s burst structure protects it organically, which unlocks a
+purely \emph{episodic} optimizer---trunk moment estimates discardable
+between bursts at no quality cost, a systems win rather than a convergence
+requirement; (iii) a block-coordinate ablation shows the
 closed-loop trigger, not the block structure, carries most of the benefit.
 Experiments are small-scale by design; we characterize the schedule, not the
 state of the art.

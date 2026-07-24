@@ -70,7 +70,9 @@ most $0.5$ / $0.9$ points on MNIST / CIFAR-10), and concedes $1.3$ (MNIST)
 and $3.3$ (CIFAR-10) points to always-full BP. At
 generous budgets the picture reverses in an instructive way: with $50\%$ full
 steps, \lpft{} is the best schedule on both datasets ($98.0\%$ / $54.2\%$),
-consistent with its design regime \citep{kumar2022finetuning}. Adaptivity
+consistent with its design regime \citep{kumar2022finetuning}; we note
+\lpft{} was designed for pretrained trunks, and from scratch it is an
+imperfect fit that we use as the standard one-switch baseline. Adaptivity
 pays precisely in the scarce-budget regime.
 
 \paragraph{The freezing ratchet: strong when timed right, and timing is

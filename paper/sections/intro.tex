@@ -62,8 +62,14 @@ character-level transformer, three seeds throughout:
   moment estimates go stale across inter-burst gaps (the schedule-induced
   analogue of the sparse-embedding pathology that motivates SparseAdam). We
   formulate and test \emph{episodic} optimizer state---moments that exist
-  only within bursts---which additionally removes the trunk's optimizer
-  memory for the ${\sim}94\%$ of steps spent in front mode.
+  only within bursts. \fw{} itself converges identically with or without
+  the reset (its bursts re-equilibrate the trunk organically), so episodic
+  state is a free systems win---the trunk's optimizer memory vanishes for
+  the ${\sim}94\%$ of steps spent in front mode---rather than a
+  convergence requirement. \fw{} saves compute time and average memory
+  traffic; peak activation memory is set by the deepest step and is
+  unchanged, with burst-scoped activation checkpointing the natural path to
+  reducing it.
   \item \textbf{The trigger, not the block, carries the benefit.} A
   block-coordinate ablation (\bcd{}: identical trigger, bursts update the
   complementary block) tracks \fw{} closely on all testbeds, isolating the
