@@ -24,7 +24,8 @@ whether depth is still worth paying for (Section~\ref{sec:framework}).
 \paragraph{Contributions.} On MLPs (MNIST, CIFAR-10) and a 10.8M-parameter
 character-level transformer, three seeds throughout:
 \begin{enumerate}
-  \item \textbf{Adaptive bursts beat every fixed alternative at low budget.}
+  \item \textbf{Adaptive bursts beat or match every fixed alternative at
+  low budget.}
   At a matched ${\sim}4$--$5\%$ full-backprop budget, \fw{} beats periodic
   schedules by $+1.5$ (MNIST) and $+5.1$ (CIFAR-10) points and one-switch
   \lpft{} \citep{kumar2022finetuning} by $+2.0$ and $+6.1$---margins that
@@ -32,7 +33,21 @@ character-level transformer, three seeds throughout:
   best trigger threshold. On the transformer, \fw{} spending ${\sim}6\%$ of
   steps at full depth matches \lpft{} spending $50\%$, and only the trigger
   family (\fw{} and its \bcd{} ablation) improves at low budget on never
-  back-propagating deep at all.
+  back-propagating deep at all. The backoff cap doubles as a \emph{budget
+  dial}: one parameter traces a monotone Pareto curve ($6$--$49\%$
+  budgets) dominating \lpft{} and periodic at every tested budget on the
+  transformer. A progressive-freezing ratchet \citep{brock2017freezeout,
+  liu2021autofreeze} ties \fw{} on MNIST at matched backward compute, but
+  its freeze timing is task-critical and irrevocable: the same setting is
+  catastrophic on the transformer, while \fw{} runs identical trigger
+  hyperparameters throughout. Controls disentangle the mechanism
+  (Section~\ref{sec:controls}): a deep-first schedule owns both the best
+  cheap stationary cell (at the right budget) and the worst cell in the
+  study (at \fw{}'s budget), and falls to the never-deep floor under a
+  mid-training distribution shift, while an oracle-period clock ties or
+  slightly trails \fw{} everywhere---bursts carry the performance; the
+  trigger's product is finding the schedule without the oracle, and
+  robustness when assumptions break.
   \item \textbf{Isolated deep steps are dangerous; bursts make them safe.}
   Full-depth steps sprinkled one at a time into cheap training collapse MLPs
   (dead-ReLU cascade driven by error signals from a co-adapted head, measured
