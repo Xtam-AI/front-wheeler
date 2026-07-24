@@ -53,8 +53,8 @@ language model, \fw{} with ${\sim}6\%$ of steps at full depth matches
 \lpft{} spending $50\%$, and is the only low-budget schedule that improves
 on never back-propagating deep at all; a single backoff parameter further
 acts as a budget dial, tracing a monotone compute--quality curve
-($6$--$49\%$ budgets) that dominates every fixed schedule we tested on the
-transformer. Three mechanism findings accompany the
+($6$--$49\%$ budgets) that dominates one-switch and periodic schedules at
+every tested budget on the transformer. Three mechanism findings accompany the
 method: (i) \emph{isolated} full-depth steps interleaved with cheap steps
 are actively destructive---collapsing MLPs via dead units and degrading the
 transformer monotonically with interleaving frequency---and burst structure

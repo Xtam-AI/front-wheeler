@@ -47,8 +47,8 @@ point: the backoff cancels eager alarms and the budget stays pinned at
 $4$--$6\%$ of steps. The lever that works is the governor itself: sweeping
 the cooldown cap $\kappa_{\max}$ from $2000$ down to $50$ traces a smooth,
 monotone Pareto curve---budgets $6\% \to 49\%$ of steps, validation loss
-$1.772 \to 1.596$ (Figure~\ref{fig:exp3pareto})---that dominates the fixed
-schedules at every tested budget on the transformer: at an $8\%$ budget the
+$1.772 \to 1.596$ (Figure~\ref{fig:exp3pareto})---that dominates \lpft{} and
+periodic at every tested budget on the transformer: at an $8\%$ budget the
 dial already matches \lpft{} spending $50\%$, and its $49\%$ endpoint
 ($1.596 \pm 0.009$) closes more than two-thirds of the front-to-full gap
 at half the deep-step budget. On the CIFAR-10 MLP the dial's high-budget
@@ -58,12 +58,13 @@ specific to the transformer. One parameter thus selects the
 compute--quality operating point, with no retuning of the trigger.
 
 \paragraph{The ratchet is fragile where \fw{} is not.} At \fw{}'s exact
-backward-FLOP budget, the fast freezing ratchet (all-but-front frozen by
-$10\%$ of training) collapses to $2.271 \pm 0.05$---worse than
-periodic---because it freezes five of six blocks before the trunk has
-learned anything, and a ratchet cannot un-freeze. The slow setting
-(freeze by $30\%$) does beat \fw{} ($1.696$ vs.\ $1.773$) but requires
-$1.46\times$ \fw{}'s compute to do so. Together with the MLP results
+backward-FLOP budget, ratchet-fast collapses to $2.271 \pm 0.05$---worse
+than periodic---because it freezes five of six blocks before the trunk has
+learned anything, and a ratchet cannot un-freeze. Ratchet-slow does beat
+\fw{}'s default ($1.696$ vs.\ $1.773$) at $1.46\times$ the compute, and
+remains slightly ahead of the \fw{} dial at matched mid-budget FLOPs
+($1.696$ at $555$k~GF vs.\ $1.717$ at $584$k~GF): a \emph{well-timed}
+ratchet is genuinely competitive in the mid-budget regime. Together with the MLP results
 (Section~\ref{sec:exp2}), the pattern is consistent: a well-timed ratchet
 is competitive, but its timing is task-critical and unrecoverable when
 wrong, whereas \fw{} ran identical trigger hyperparameters on every

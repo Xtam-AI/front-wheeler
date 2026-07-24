@@ -93,11 +93,13 @@ pays precisely in the scarce-budget regime.
 
 \paragraph{The freezing ratchet: strong when timed right, and timing is
 task-critical.} The progressive-freezing baseline (\textsc{ratchet};
-Section~\ref{sec:framework}) is compared in backward-FLOPs, since its
-per-step cost varies as layers freeze. At matched compute it exceeds
-\fw{} on MNIST consistently but not significantly ($97.3$ vs.\ $97.1$,
-$+0.2$ in all three seed pairings, within one seed-std; its slower setting
-reaches $98.2$ at a third of full BP's FLOPs) and trails \fw{} on
+Section~\ref{sec:framework}) comes in two settings---\emph{ratchet-fast}
+(all-but-front frozen by $10\%$ of training) and \emph{ratchet-slow} (by
+$30\%$)---and is compared in backward-FLOPs, since its per-step cost varies
+as layers freeze. At matched compute, ratchet-fast exceeds \fw{} on MNIST
+consistently but not significantly ($97.3$ vs.\ $97.1$, $+0.2$ in all
+three seed pairings, within one seed-std; ratchet-slow reaches $98.2$ at a
+third of full BP's FLOPs) and trails \fw{} on
 CIFAR-10 ($50.8$ vs.\ $51.6$ at matched FLOPs). We therefore do not claim
 \fw{} beats all fixed schedules on easy tasks; the decisive contrast
 appears on the transformer (Section~\ref{sec:exp3}), where the same fast
