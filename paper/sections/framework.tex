@@ -26,8 +26,11 @@ the scheduling problem.
 with their parameters: \textsc{periodic}-$N$ (one full step every $N$),
 \lpft{}($s$) (front until fraction $s$ of training, then full),
 \textsc{ratchet}($r$) (all-but-front frozen by fraction $r$ of training),
-\fw{}($\tau$, $\kappa_{\max}$) (trigger threshold and cooldown cap), and
-\bcd{} (as \fw{} with trunk-only bursts). Cost is reported on two axes:
+\fw{}($\tau$, $\kappa_{\max}$) (trigger threshold and cooldown cap),
+\bcd{} (as \fw{} with trunk-only bursts), \textsc{ftlp}($s$) (the reverse
+of \lpft{}: full steps for the first fraction $s$ of training, front steps
+after), and \textsc{pburst}($P$) (open-loop bursts: $B$ consecutive full
+steps every $P$ steps, no trigger). Cost is reported on two axes:
 \emph{deep-step budget} (fraction of steps at full depth; meaningful only
 for schedules whose steps are binary front/full) and \emph{backward
 compute} (total backward MACs, as a fraction of \textsc{full}'s; defined

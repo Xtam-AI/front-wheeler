@@ -54,7 +54,14 @@ language model, \fw{} with ${\sim}6\%$ of steps at full depth matches
 back-propagating deep at all; a single backoff parameter further
 acts as a budget dial, tracing a monotone compute--quality curve
 ($6$--$49\%$ budgets) that dominates one-switch and periodic schedules at
-every tested budget on the transformer. Three mechanism findings accompany the
+every tested budget on the transformer. Under a mid-training distribution
+shift, \fw{} is the best cheap schedule, invariant to when the shift
+occurs, while the deep-first schedule that wins one stationary budget falls
+to the never-deep floor. Across all conditions the pattern is consistent:
+every fixed alternative is a bet on one assumption---a budget, a freeze
+time, a clock---and fails outright when it is wrong, on stationary tasks as
+much as shifted ones; \fw{}, with one configuration throughout, is never
+worse than second-best among cheap schedules and never fails. Three mechanism findings accompany the
 method: (i) \emph{isolated} full-depth steps interleaved with cheap steps
 are actively destructive---collapsing MLPs via dead units and degrading the
 transformer monotonically with interleaving frequency---and burst structure

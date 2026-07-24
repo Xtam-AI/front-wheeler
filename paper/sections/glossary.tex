@@ -43,6 +43,10 @@ $s$ of training, full steps after; one switch. \\
 permanently, all-but-front frozen by fraction $r$ of training. \\
 \bcd{} & block-coordinate ablation of \fw{}: identical trigger, but bursts
 update only the trunk (head frozen). \\
+\textsc{ftlp}($s$) & reverse of \lpft{}: full BP for the first fraction $s$
+of training, then front steps forever (``deep-first''). \\
+\textsc{pburst}($P$) & open-loop control for the trigger: bursts of $B$
+consecutive full steps every $P$ steps, on a clock, no loss signal. \\
 \midrule
 \multicolumn{2}{l}{\emph{Optimization and cost terms}} \\
 \midrule

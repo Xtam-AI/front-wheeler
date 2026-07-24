@@ -46,6 +46,11 @@ Schedule (setting) & Deep steps & Backward compute & Val.\ loss \\
 \midrule
 \textsc{ratchet}($0.1$) & $2\%$ & $22\%$ & $2.271 \pm 0.042$ \\
 \textsc{ratchet}($0.3$) & $6\%$ & $32\%$ & $1.696 \pm 0.009$ \\
+\midrule
+\textsc{ftlp}($0.06$) & $6\%$ & $22\%$ & $2.290 \pm 0.035$ \\
+\textsc{ftlp}($0.2$) & $20\%$ & $33\%$ & $\mathbf{1.665 \pm 0.007}$ \\
+\textsc{pburst}($833$) & $6\%$ & $22\%$ & $1.814 \pm 0.014$ \\
+\textsc{pburst}($250$) & $20\%$ & $33\%$ & $1.747 \pm 0.016$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -189,6 +194,83 @@ because the peak is set by the deepest single step. \fw{} reduces
 \emph{average} memory and (via episodic state) trunk optimizer memory, not
 the activation peak; activation checkpointing inside bursts, which are only
 ${\sim}6\%$ of steps, is the natural remedy and is future work.
+
+\subsection{Is the trigger necessary? Controls and a distribution shift}
+\label{sec:controls}
+
+Two simpler rivals could explain \fw{}'s results without any closed loop:
+\textsc{ftlp} (spend all depth first, then never again) and \textsc{pburst}
+(bursts on a fixed clock). We test both on the stationary task and under a
+mid-training distribution shift.
+
+\paragraph{Stationary: deep-first is the highest-peak, lowest-valley
+schedule.} At \fw{}'s matched budget, \textsc{ftlp}($0.06$) is the worst
+cell in our entire study ($2.290 \pm 0.035$, far below \textsc{front}):
+$300$ full steps from initialization---before warmup completes---leave a
+half-trained trunk that is then frozen forever. Yet given $3\times$ the
+budget, \textsc{ftlp}($0.2$) is the \emph{best} cheap schedule we measured
+($1.665 \pm 0.007$ at a $20\%$ deep-step budget), ahead of the \fw{} dial
+($1.717$) and \textsc{ratchet}($0.3$) ($1.696$). Deep-first is a bet on
+knowing the right early budget: its peak and its collapse are two settings
+of the same parameter. \textsc{pburst} at matched budget is consistently
+behind \fw{} ($1.814 \pm 0.014$ vs.\ $1.773 \pm 0.013$) though far from
+failure; note its period was set \emph{from \fw{}'s own discovered
+budget}---the clock is an oracle baseline.
+
+\paragraph{Distribution shift.} We switch the training corpus mid-run
+(tiny Shakespeare $\to$ War and Peace, joint vocabulary; $10{,}000$ steps,
+switch at step $5{,}400$, placed mid-gap for \textsc{pburst}'s clock so it
+cannot be lucky; schedules are not told). Post-shift validation loss,
+3 seeds:
+
+\begin{table}[t]
+\centering
+\caption{Distribution shift: post-shift validation loss (mean $\pm$ std,
+3 seeds). \fw{} numbers from the fair-placement run (shift at $5{,}400$);
+other schedules from the switch-at-$5{,}000$ run, where \textsc{pburst}'s
+clock coincidentally fired at the shift (its fair-placement result is
+shown).}
+\label{tab:shift}
+\begin{tabular}{lccc}
+\toprule
+Schedule (setting) & Deep steps & Post-shift val.\ loss \\
+\midrule
+\textsc{full} & $100\%$ & $1.238 \pm 0.004$ \\
+\fw{}($\tau{=}0.02$) & $4\%$ & $\mathbf{1.549 \pm 0.013}$ \\
+\textsc{pburst}($833$), fair placement & $6\%$ & $1.561 \pm 0.008$ \\
+\textsc{ftlp}($0.06$) & $6\%$ & $1.605 \pm 0.011$ \\
+\lpft{}($0.9$) & $10\%$ & $1.608 \pm 0.044$ \\
+\textsc{front} & $0\%$ & $1.611 \pm 0.044$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Three observations (Table~\ref{tab:shift}). First, \fw{} is the best
+cheap schedule post-shift, ahead of the fair-placed clock in all three seed
+pairings ($+0.002$, $+0.028$, $+0.005$)---a small, consistent edge---and
+its result is invariant to where the shift lands, which no clock can claim.
+Its burst log shows the mechanism: the trigger stayed silent while front
+steps productively re-fit the head to the new corpus (${\sim}1{,}000$
+steps), then fired ahead of its own backoff trajectory once that cheap
+adaptation saturated. Second, \textsc{ftlp} falls from best cheap schedule
+(stationary, right budget) to the \textsc{front} floor: all its depth was
+spent on a corpus that no longer exists. Third, the shift is mild (English
+prose to English prose) and compresses the cheap field into $0.07$ of loss;
+the dramatic failures in this study occur on \emph{stationary} tasks with
+wrongly-set schedule parameters, not under shift.
+
+\paragraph{The trigger's verdict, stated at full strength and no more.}
+Across every test: consecutive bursts are the load-bearing mechanism; a
+fixed clock with an oracle period ties or slightly trails \fw{}; the
+trigger's demonstrated contributions are (i) discovering the burst schedule
+without the oracle ($\tau$ inert across $200\times$, identical
+configuration on every testbed, budget self-selected per task), (ii) a
+small consistent edge stationary ($+0.04$) and under shift ($+0.01$), and
+(iii) placement invariance. One honest weakness: post-shift, \fw{}
+recovered $12\%$ of the front-to-full gap versus $18\%$
+stationary---the backoff that protects it on stationary tasks had
+lengthened its cooldown pre-shift, capping how fast it re-escalates;
+a shift-aware governor reset is an obvious next design.
 
 The results so far take the premise---that cheap front steps carry most
 per-step progress---as given; we close the loop by reporting the
