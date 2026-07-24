@@ -20,6 +20,7 @@ from common import CSVLogger, DATA_DIR, RESULTS_DIR, get_device, set_seed
 SHAKESPEARE_URL = ("https://raw.githubusercontent.com/karpathy/char-rnn/"
                    "master/data/tinyshakespeare/input.txt")
 ALICE_URL = "https://www.gutenberg.org/files/11/11-0.txt"
+WARPEACE_URL = "https://www.gutenberg.org/files/2600/2600-0.txt"
 
 
 # ---------------------------------------------------------------- model
@@ -98,9 +99,10 @@ def _fetch(fname, url):
     return open(path, encoding="utf-8", errors="ignore").read()
 
 
-def load_data(device, shift=False):
+def load_data(device, shift=False, corpus_b="alice"):
     """Returns (train_a, val_a, vocab) or, with shift, also (train_b, val_b):
-    corpus A = tiny Shakespeare, corpus B = Alice in Wonderland, joint vocab."""
+    corpus A = tiny Shakespeare; corpus B = alice (~150KB, overfit-prone) or
+    warpeace (~3MB), joint vocab."""
     text_a = _fetch("tinyshakespeare.txt", SHAKESPEARE_URL)
     if not shift:
         chars = sorted(set(text_a))
@@ -108,7 +110,10 @@ def load_data(device, shift=False):
         data = torch.tensor([stoi[c] for c in text_a], dtype=torch.long)
         n = int(0.9 * len(data))
         return data[:n].to(device), data[n:].to(device), len(chars)
-    text_b = _fetch("alice.txt", ALICE_URL)
+    if corpus_b == "alice":
+        text_b = _fetch("alice.txt", ALICE_URL)
+    else:
+        text_b = _fetch("warpeace.txt", WARPEACE_URL)
     chars = sorted(set(text_a) | set(text_b))
     stoi = {c: i for i, c in enumerate(chars)}
     def enc(t):
@@ -164,7 +169,8 @@ def run(args):
     set_seed(args.seed)
     device = get_device()
     if args.shift_at > 0:
-        (train_a, val_a, train_b, val_b), vocab = load_data(device, shift=True)
+        (train_a, val_a, train_b, val_b), vocab = load_data(
+            device, shift=True, corpus_b=args.shift_corpus)
         train, val = train_a, val_a
     else:
         train, val, vocab = load_data(device)
@@ -317,6 +323,8 @@ def main():
                    help="pburst: burst of --burst full steps every this many steps")
     p.add_argument("--shift-at", type=int, default=0,
                    help="if >0, switch training corpus at this step (A->B)")
+    p.add_argument("--shift-corpus", default="warpeace",
+                   choices=["alice", "warpeace"])
     p.add_argument("--ratchet-by", type=float, default=0.3,
                    help="ratchet: fraction of training by which all-but-front is frozen")
     p.add_argument("--seed", type=int, default=0)
