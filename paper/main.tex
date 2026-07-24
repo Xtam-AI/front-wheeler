@@ -50,8 +50,9 @@ ${\sim}4\%$ full-backprop budget beats matched periodic schedules and
 one-switch linear-probe-then-fine-tune (\lpft{}) by margins that grow with
 task difficulty ($+1.5$ to $+6.1$ points). On a 10.8M-parameter transformer
 language model, \fw{} with ${\sim}6\%$ of steps at full depth matches
-\lpft{} spending $50\%$, and is the only low-budget schedule that improves
-on never back-propagating deep at all; a single backoff parameter further
+\lpft{} spending $50\%$, and and only the trigger family (\fw{} and its
+\bcd{} ablation) improves at low budget on never back-propagating deep at
+all; a single backoff parameter further
 acts as a budget dial, tracing a monotone compute--quality curve
 ($6$--$49\%$ budgets) that dominates one-switch and periodic schedules at
 every tested budget on the transformer. Three mechanism findings accompany the

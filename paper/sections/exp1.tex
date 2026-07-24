@@ -55,7 +55,8 @@ $53.3 \to 23.1$ with large seed variance on CIFAR-10), consistent with
 feedback alignment's known depth pathology. Claims about local wiring rules
 in this paper are therefore scoped to shallow networks. Third, \emph{a
 global scalar is not enough at any depth we tested}: \rmhebb{} stays far
-below every vector-signal rule and degrades further with depth.
+below every vector-signal rule and degrades further with depth. Mask-budget
+robustness at two hidden layers is shown in Figure~\ref{fig:sparsity}.
 
 \paragraph{The observation that led to \fw{}.} The \textsc{readout} control
 is the quiet protagonist: training \emph{only the top} of a frozen random

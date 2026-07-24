@@ -46,7 +46,7 @@ $\|\nabla L\|$) would turn \fw{} into an approximate optimal stopping rule.
 The episodic-optimizer ablation suggests a broader design space:
 per-burst warmup lengths, moment half-lives matched to burst spacing, and
 trust-ratio update clipping as the Adam-compatible safety net. At scale, the
-memory argument sharpens---trunk optimizer state that exists only $4\%$ of
+memory argument sharpens---trunk optimizer state that exists only ${\sim}6\%$ of
 the time is a different systems regime---and the natural next testbed is a
 pretrained model, where \fw{} becomes an adaptive fine-tuning schedule and
 \lpft{} is the one-switch special case it generalizes.
@@ -58,8 +58,9 @@ front steps by default, consecutive bursts of full backpropagation when---and
 only when---a plateau says the cheap subspace is exhausted, and exponential
 backoff when a burst reveals the plateau was global. At a few percent of the
 full-backprop budget it beats or matches every fixed schedule we tested on
-MLPs and beats all of them on a transformer---the sole exception being a
-freezing ratchet that exceeds it on MNIST within seed noise but whose
+MLPs and beats all of them on a transformer at low budget---the exceptions, both
+stated where they occur, being a freezing ratchet that exceeds it on MNIST
+within seed noise and again at mid-budget transformer compute, and whose
 required timing proves catastrophic when transferred across testbeds; its failures
 localize to mechanisms we could measure
 (isolated-step churn, stale optimizer moments) and repair (bursts, episodic

@@ -63,14 +63,14 @@ spent. \fw{} is the only low-budget schedule below the front-only line.}
 Table~\ref{tab:exp3matrix} is the canonical comparison; read it within
 matched backward-compute tiers. \textsc{full} reaches $1.488 \pm 0.008$;
 \textsc{front} $1.836 \pm 0.004$ (Figure~\ref{fig:exp3pareto}). Between those anchors the fixed schedules
-barely move: \lpft{} at a $10\%$ budget gains $0.004$ over front-only
+barely move: \lpft{} at a $10\%$ budget gains $0.003$ over front-only
 ($1.832 \pm 0.004$), and periodic interleaving is \emph{destructive} at
 every budget tested---$1.87$ at $2\%$, worsening monotonically with
 interleaving frequency to $2.40 \pm 0.05$ at a $20\%$ budget, far worse
 than doing nothing deep. \fw{} at a ${\sim}6\%$ budget reaches
 $1.773 \pm 0.013$, statistically indistinguishable from \lpft{} spending
-$50\%$ ($1.766 \pm 0.007$)---an ${\sim}8\times$ budget efficiency over
-the one-switch schedule---robust across thresholds ($1.773$--$1.776$ for
+$50\%$ ($1.766 \pm 0.007$)---an $8\times$ ratio in deep-step budget and ${\sim}2.7\times$ in backward
+compute over the one-switch schedule---robust across thresholds ($1.773$--$1.776$ for
 $\tau$ varied $10\times$), with \bcd{} tracking at $1.797 \pm 0.010$.
 The gap to always-full remains substantial: \fw{} recovers ${\sim}18\%$
 of the front-to-full gap here, vs.\ ${\sim}$two-thirds on MLPs. Deep
@@ -81,21 +81,21 @@ compute rather than matching full BP.
 Sweeping the trigger threshold $\tau$ across two orders of magnitude
 ($0.005 \to 1.0$) with the governor active barely moves the operating
 point: the backoff cancels eager alarms and the budget stays pinned at
-$4$--$6\%$ of steps. The lever that works is the governor itself: sweeping
+$6$--$9\%$ of steps. The lever that works is the governor itself: sweeping
 the cooldown cap $\kappa_{\max}$ from $2000$ down to $50$ traces a smooth,
 monotone Pareto curve---budgets $6\% \to 49\%$ of steps, validation loss
-$1.772 \to 1.596$ (Figure~\ref{fig:exp3pareto})---that dominates \lpft{} and
+$1.773 \to 1.596$ (Figure~\ref{fig:exp3pareto})---that dominates \lpft{} and
 periodic at every tested budget on the transformer: at an $8\%$ budget the
 dial already matches \lpft{} spending $50\%$, and its $49\%$ endpoint
 ($1.596 \pm 0.009$) closes more than two-thirds of the front-to-full gap
 at half the deep-step budget. On the CIFAR-10 MLP the dial's high-budget
 endpoint is comparable to, but does not beat, the best fixed $50\%$
-schedules ($53.9$ vs.\ $54.2$ for \lpft{}); the dominance claim is
+schedules ($53.8$ vs.\ $54.2$ for \lpft{}); the dominance claim is
 specific to the transformer. One parameter thus selects the
 compute--quality operating point, with no retuning of the trigger.
 
 \paragraph{The ratchet is fragile where \fw{} is not.} At \fw{}'s exact
-backward-FLOP budget, \textsc{ratchet}($0.1$) collapses to $2.271 \pm 0.05$---worse
+backward-FLOP budget, \textsc{ratchet}($0.1$) collapses to $2.271 \pm 0.04$---worse
 than periodic---because it freezes five of six blocks before the trunk has
 learned anything, and a ratchet cannot un-freeze. \textsc{ratchet}($0.3$) does beat
 \fw{}'s default ($1.696$ vs.\ $1.773$) at $1.46\times$ the compute, and
@@ -109,7 +109,8 @@ testbed in this paper. Revocable bursts buy robustness that irrevocable
 freezing cannot.
 
 \paragraph{Measured resources validate the cost model---with one caveat.}
-End-to-end single runs (2{,}000 steps, identical hardware) measure: full BP
+End-to-end single runs (2{,}000 steps, identical hardware;
+Appendix~\ref{app:infra}) measure: full BP
 $98.4$s, \fw{} $49.3$s, \textsc{ratchet}($0.1$) $49.7$s, front-only $46.6$s---\fw{}
 and the flops-matched ratchet are equal-cost in wall clock to within $1\%$,
 and \fw{} delivers a real $2.0\times$ end-to-end speedup over full BP at

@@ -30,8 +30,9 @@ character-level transformer, three seeds throughout:
   \lpft{} \citep{kumar2022finetuning} by $+2.0$ and $+6.1$---margins that
   \emph{grow} with task difficulty, and that survive the worst rather than
   best trigger threshold. On the transformer, \fw{} spending ${\sim}6\%$ of
-  steps at full depth matches \lpft{} spending $50\%$, and is the only
-  low-budget schedule that improves at all on never back-propagating deep.
+  steps at full depth matches \lpft{} spending $50\%$, and only the trigger
+  family (\fw{} and its \bcd{} ablation) improves at low budget on never
+  back-propagating deep at all.
   \item \textbf{Isolated deep steps are dangerous; bursts make them safe.}
   Full-depth steps sprinkled one at a time into cheap training collapse MLPs
   (dead-ReLU cascade driven by error signals from a co-adapted head, measured
@@ -47,7 +48,7 @@ character-level transformer, three seeds throughout:
   analogue of the sparse-embedding pathology that motivates SparseAdam). We
   formulate and test \emph{episodic} optimizer state---moments that exist
   only within bursts---which additionally removes the trunk's optimizer
-  memory for the ${\sim}96\%$ of steps spent in front mode.
+  memory for the ${\sim}94\%$ of steps spent in front mode.
   \item \textbf{The trigger, not the block, carries the benefit.} A
   block-coordinate ablation (\bcd{}: identical trigger, bursts update the
   complementary block) tracks \fw{} closely on all testbeds, isolating the

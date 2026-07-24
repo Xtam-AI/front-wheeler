@@ -25,7 +25,8 @@ $B$; cooldown $\kappa \gets C$
 \paragraph{Protocol.} MLPs with four hidden layers of width 512; SGD momentum
 $0.9$, learning rate $0.05$, global gradient-norm clipping at $1.0$; 20
 epochs (MNIST) / 30 epochs (CIFAR-10); 3 seeds. \fw{} uses $C{=}50$,
-$B{=}50$, $\kappa_{\max}{=}2000$, $\tau \in \{0.005, 0.01, 0.05\}$.
+$B{=}50$, $\kappa_{\max}{=}2000$, $\tau \in \{0.005, 0.01, 0.02, 0.05\}$
+(MNIST) / $\{0.005, 0.02, 0.05\}$ (CIFAR-10).
 Baselines: \textsc{full} (BP every step), \textsc{front} (never full),
 \textsc{periodic}-$N$ (full every $N$th step, $N \in \{2,5,10,20,50\}$),
 \lpft{} (front until a switch point, then full; switch swept over
@@ -38,7 +39,8 @@ complementary-block variant).
 \caption{Final test accuracy at the low-budget operating point
 (${\sim}4$--$5\%$ full-depth steps), mean over 3 seeds. Budget = fraction of
 steps that back-propagate to full depth. \bcd{} bursts cost nearly full price
-(Section~\ref{sec:framework}). Anchors: \textsc{full} and \textsc{front}.}
+(Section~\ref{sec:framework}). Anchors: \textsc{full} and \textsc{front}. Bold = best at this operating
+point.}
 \label{tab:exp2}
 \begin{tabular}{lccc}
 \toprule
@@ -46,8 +48,8 @@ Schedule & Budget & MNIST & CIFAR-10 \\
 \midrule
 \textsc{full} (anchor) & $100\%$ & $98.4$ & $55.0$ \\
 \midrule
-\fw{} (best $\tau$) & $4.1$--$4.8\%$ & $\mathbf{97.1}$ & $\mathbf{51.6}$ \\
-\bcd{} & $4.3$--$4.5\%$ & $97.2$ & $50.5$ \\
+\fw{} (best $\tau$) & $4.1$--$4.8\%$ & $97.1$ & $\mathbf{51.6}$ \\
+\bcd{} & $4.3$--$4.5\%$ & $\mathbf{97.2}$ & $50.5$ \\
 \textsc{periodic}-20 & $5\%$ & $95.6$ & $46.5$ \\
 \lpft{}($0.95$) & $5\%$ & $95.7$ & $47.1$ \\
 \lpft{}($0.96$) & $4\%$ & $95.1$ & $45.6$ \\
@@ -61,8 +63,7 @@ Schedule & Budget & MNIST & CIFAR-10 \\
 \centering
 \includegraphics[width=\textwidth]{exp2_pareto}
 \caption{Accuracy vs.\ full-backprop budget (log scale). Curves: mean $\pm$
-std over 3 seeds. The \fw{} diamond pools all thresholds ($\tau \in
-\{0.005, 0.01, 0.02, 0.05\}$) and seeds---whiskers span min to max, per-$\tau$
+std over 3 seeds. The \fw{} diamond pools all tested thresholds and seeds---whiskers span min to max, per-$\tau$
 numbers are in the text. Fixed schedules (\textsc{periodic}-$N$) and
 one-switch \lpft{} trace nearly identical Pareto curves; the adaptive
 schedules (\fw{}, and the \bcd{} ablation sharing its trigger) sit above both
@@ -97,8 +98,8 @@ Section~\ref{sec:framework}) comes in two settings---\textsc{ratchet}($0.1$)
 (all-but-front frozen by $10\%$ of training) and \textsc{ratchet}($0.3$)
 (by $30\%$)---and is compared in backward compute, since its per-step cost varies
 as layers freeze. At matched compute, \textsc{ratchet}($0.1$) exceeds \fw{} on MNIST
-consistently but not significantly ($97.3$ vs.\ $97.1$, $+0.2$ in all
-three seed pairings, within one seed-std; \textsc{ratchet}($0.3$) reaches $98.2$ at a
+consistently but not significantly ($97.3$ vs.\ $97.1$; positive in all
+three seed pairings, $+0.22$ on average, within one seed-std; \textsc{ratchet}($0.3$) reaches $98.2$ at a
 third of full BP's FLOPs) and trails \fw{} on
 CIFAR-10 ($50.8$ vs.\ $51.6$ at matched FLOPs). We therefore do not claim
 \fw{} beats all fixed schedules on easy tasks; the decisive contrast
