@@ -25,8 +25,8 @@ whether depth is still worth paying for (Section~\ref{sec:framework}).
 \begin{figure}[t]
 \centering
 \includegraphics[width=\textwidth]{fw_schematic}
-\caption{\fw{} in action (transformer, seed 0; a real run, not a
-schematic). Top: training-loss EMA. Bottom: the schedule---blue marks are
+\caption{\fw{} in action: a single measured training run (transformer,
+seed 0). Top: training-loss EMA. Bottom: the schedule---blue marks are
 bursts of $B{=}50$ full-BP steps, gray is front steps, and the numbers are
 the gap widths between bursts, stretched by the backoff as training
 saturates ($450 \to 700 \to 1700$); the backoff cap $\kappa_{\max}$ is
@@ -37,8 +37,8 @@ the budget dial of Section~\ref{sec:exp3}.}
 \paragraph{Contributions.} On MLPs (MNIST, CIFAR-10) and a 10.8M-parameter
 character-level transformer, three seeds throughout:
 \begin{enumerate}
-  \item \textbf{Adaptive bursts beat or match every fixed alternative at
-  low budget.}
+  \item \textbf{\fw{} beats or matches every fixed alternative at low
+  budget.}
   At a matched ${\sim}4$--$5\%$ full-backprop budget, \fw{} beats
   \textsc{periodic}-$N$ schedules (one full step every $N$th step) by
   $+1.5$ (MNIST) and $+5.1$ (CIFAR-10) points and one-switch
