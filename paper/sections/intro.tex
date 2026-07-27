@@ -57,12 +57,13 @@ character-level transformer, three seeds throughout:
   hyperparameters throughout. Controls disentangle the mechanism
   (Section~\ref{sec:controls}): a deep-first schedule owns both the best
   cheap stationary cell (at the right budget) and the worst cell in the
-  study (at \fw{}'s budget), and falls to the never-deep floor under a
-  mid-training distribution shift, while a fixed-cadence clock, its period
-  set with hindsight from \fw{}'s own discovered budget, ties or slightly
-  trails \fw{} everywhere---bursts carry the performance; the trigger's
-  product is finding the schedule without that hindsight, and robustness
-  when assumptions break.
+  study (at \fw{}'s budget), with a fate under shift that depends on the
+  condition; a fixed-cadence clock, its period set with hindsight from
+  \fw{}'s own discovered budget, ties or slightly trails \fw{}
+  everywhere---bursts carry the performance; the trigger's product is
+  finding the schedule without that hindsight, robustness when assumptions
+  break, and, with a one-line shift-aware governor reset, responsiveness to
+  them breaking (best cheap schedule under the harshest shift).
   \item \textbf{Isolated deep steps are dangerous; bursts make them safe.}
   Full-depth steps sprinkled one at a time into cheap training collapse MLPs
   (dead-ReLU cascade driven by error signals from a co-adapted head, measured

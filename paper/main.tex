@@ -57,10 +57,11 @@ language model, \fw{} with ${\sim}6\%$ of steps at full depth matches
 never back-propagating deep at all; a single backoff parameter further
 acts as a budget dial, tracing a monotone compute--quality curve
 ($6$--$49\%$ budgets) that dominates one-switch and periodic schedules at
-every tested budget on the transformer. Under a mid-training distribution
-shift, \fw{} is the best cheap schedule, invariant to when the shift
-occurs, while the deep-first schedule that wins one stationary budget falls
-to the never-deep floor. Across all conditions the pattern is consistent:
+every tested budget on the transformer. Under two mid-training distribution shifts of different severity, \fw{}
+is the best cheap schedule, invariant to when the shift occurs; a one-line
+\emph{shift-aware governor reset} repairs its one documented weakness
+(delayed re-escalation), making it the best cheap schedule under the
+harshest condition we test. Across all conditions the pattern is consistent:
 every fixed alternative is a bet on one assumption---a budget, a freeze
 time, a clock---and fails outright when it is wrong, on stationary tasks as
 much as shifted ones; \fw{}, with one configuration throughout, is first or second among
@@ -104,6 +105,8 @@ logs in the repository.
 \appendix
 
 \input{sections/glossary}
+
+\input{sections/appendix_tables}
 
 \input{sections/exp1}
 

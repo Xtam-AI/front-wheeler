@@ -4,176 +4,114 @@
 We now change both the architecture and the optimizer: from SGD-trained
 MLPs to a transformer under AdamW.
 
-\paragraph{Protocol.} Character-level language modeling on tiny
+\paragraph{Conditions.} Character-level language modeling on tiny
 Shakespeare: a 10.8M-parameter decoder-only transformer (6 layers,
 $d{=}384$, 6 heads, context 256, dropout $0.2$), AdamW ($3{\times}10^{-4}$,
 200-step warmup, cosine decay, weight decay $0.1$, clip $1.0$), 5{,}000
-steps, batch 64, 3 seeds. The front is the last transformer block, the final
-LayerNorm, and the LM head; the LM head is \emph{untied} from the token
-embedding so front steps cannot leak trunk updates through weight tying.
-Front steps run the trunk under \texttt{no\_grad}. Schedules as in
-Section~\ref{sec:exp2}; metric is validation loss.
+steps, batch 64, 3 seeds. The front is the last transformer block, the
+final LayerNorm, and the LM head; the LM head is \emph{untied} from the
+token embedding so front steps cannot leak trunk updates through weight
+tying. Front steps run the trunk under \texttt{no\_grad}. \fw{} keeps the
+MLP configuration unchanged. Metric: validation loss (lower is better);
+cost: backward compute as a fraction of \textsc{full}'s. The complete
+population is Table~\ref{tab:exp3matrix} (Appendix~\ref{app:tables}).
 
-\begin{table}[t]
-\centering
-\caption{Transformer results matrix (validation loss, mean $\pm$ std,
-3 seeds). Backward compute is the honest cost axis (fraction of
-\textsc{full}'s backward MACs); deep-step budget is shown for intuition
-and is not comparable for \textsc{ratchet}, whose partial-depth steps it
-ignores. Read comparisons within matched backward-compute tiers.}
-\label{tab:exp3matrix}
-\begin{tabular}{lccc}
-\toprule
-Schedule (setting) & Deep steps & Backward compute & Val.\ loss \\
-\midrule
-\textsc{full} & $100\%$ & $100\%$ & $1.488 \pm 0.008$ \\
-\textsc{front} & $0\%$ & $17\%$ & $1.836 \pm 0.004$ \\
-\midrule
-\fw{}($\tau{=}0.02$, $\kappa_{\max}{=}2000$) & $6\%$ & $22\%$ & $1.773 \pm 0.013$ \\
-\fw{}($\tau{=}0.1$, $\kappa_{\max}{=}200$) & $20\%$ & $33\%$ & $1.717 \pm 0.009$ \\
-\fw{}($\tau{=}0.1$, $\kappa_{\max}{=}100$) & $33\%$ & $44\%$ & $1.668 \pm 0.010$ \\
-\fw{}($\tau{=}0.1$, $\kappa_{\max}{=}50$) & $49\%$ & $58\%$ & $1.596 \pm 0.009$ \\
-\bcd{} & $6\%$ & $21\%$ & $1.797 \pm 0.010$ \\
-\midrule
-\lpft{}($0.9$) & $10\%$ & $25\%$ & $1.832 \pm 0.004$ \\
-\lpft{}($0.8$) & $20\%$ & $33\%$ & $1.823 \pm 0.002$ \\
-\lpft{}($0.5$) & $50\%$ & $58\%$ & $1.766 \pm 0.007$ \\
-\midrule
-\textsc{periodic}-50 & $2\%$ & $19\%$ & $1.873 \pm 0.031$ \\
-\textsc{periodic}-20 & $5\%$ & $21\%$ & $1.910 \pm 0.059$ \\
-\textsc{periodic}-10 & $10\%$ & $25\%$ & $2.047 \pm 0.127$ \\
-\textsc{periodic}-5 & $20\%$ & $33\%$ & $2.404 \pm 0.046$ \\
-\midrule
-\textsc{ratchet}($0.1$) & $2\%$ & $22\%$ & $2.271 \pm 0.042$ \\
-\textsc{ratchet}($0.3$) & $6\%$ & $32\%$ & $1.696 \pm 0.009$ \\
-\midrule
-\textsc{ftlp}($0.06$) & $6\%$ & $22\%$ & $2.290 \pm 0.035$ \\
-\textsc{ftlp}($0.2$) & $20\%$ & $33\%$ & $\mathbf{1.665 \pm 0.007}$ \\
-\textsc{pburst}($833$) & $6\%$ & $22\%$ & $1.814 \pm 0.014$ \\
-\textsc{pburst}($250$) & $20\%$ & $33\%$ & $1.747 \pm 0.016$ \\
-\bottomrule
-\end{tabular}
-\end{table}
+\paragraph{Question 1: does the low-budget result transfer?} The claim is
+that \fw{}'s matched-budget advantage is not an SGD/MLP artifact.
+\textsc{full} reaches $1.488 \pm 0.008$ and \textsc{front} $1.836 \pm
+0.004$; \fw{} at a $6\%$ deep-step budget ($22\%$ backward compute) reaches
+$1.773 \pm 0.013$---indistinguishable within seed spread from \lpft{}
+spending $50\%$ of steps ($1.766 \pm 0.007$; an $8\times$ ratio in
+deep-step budget, ${\sim}2.7\times$ in backward compute)---robust across
+thresholds ($1.773$--$1.776$ for $\tau$ varied $10\times$), with \bcd{}
+tracking at $1.797 \pm 0.010$. At matched low compute, no fixed schedule
+approaches this: \lpft{}($0.95$) reaches $1.835$ and \textsc{periodic}-20
+$1.910$. The gap to always-full remains substantial: \fw{} recovers
+${\sim}18\%$ of the front-to-full gap here, vs.\ ${\sim}$two-thirds on
+MLPs---deep trunks need more deep training on harder tasks, and \fw{}
+trades quality for compute rather than matching full BP.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.72\textwidth]{exp3_pareto}
 \caption{Transformer: validation loss vs.\ full-backprop budget (log
-scale; mean $\pm$ std, 3 seeds; the \fw{} diamond pools thresholds, whiskers
-span min to max). Periodic interleaving is \emph{destructive}---worse than
-front-only at every budget, monotonically in interleaving frequency---and
-one-switch \lpft{} tracks the front-only line until half the budget is
-spent. at low budget, \fw{} sits below the front-only line where one-switch and
-periodic schedules do not reach.}
+scale; mean $\pm$ std, 3 seeds; the \fw{} diamond pools thresholds,
+whiskers span min to max). Periodic interleaving is
+\emph{destructive}---worse than front-only at every budget, monotonically
+in interleaving frequency---and one-switch \lpft{} tracks the front-only
+line until half the budget is spent; at low budget, \fw{} sits below the
+front-only line where one-switch and periodic schedules do not reach.}
 \label{fig:exp3pareto}
 \end{figure}
 
-\paragraph{Only adaptive bursts convert a small budget into progress.}
-Table~\ref{tab:exp3matrix} is the canonical comparison; read it within
-matched backward-compute tiers. \textsc{full} reaches $1.488 \pm 0.008$;
-\textsc{front} $1.836 \pm 0.004$ (Figure~\ref{fig:exp3pareto}). Between those anchors the fixed schedules
-barely move: \lpft{} at a $10\%$ budget gains $0.003$ over front-only
-($1.832 \pm 0.004$), and periodic interleaving is \emph{destructive} at
-every budget tested---$1.87$ at $2\%$, worsening monotonically with
-interleaving frequency to $2.40 \pm 0.05$ at a $20\%$ budget, far worse
-than doing nothing deep. \fw{} at a ${\sim}6\%$ budget reaches
-$1.773 \pm 0.013$, indistinguishable within seed spread from \lpft{} spending
-$50\%$ ($1.766 \pm 0.007$)---an $8\times$ ratio in deep-step budget and ${\sim}2.7\times$ in backward
-compute over the one-switch schedule---robust across thresholds ($1.773$--$1.776$ for
-$\tau$ varied $10\times$), with \bcd{} tracking at $1.797 \pm 0.010$.
-The gap to always-full remains substantial: \fw{} recovers ${\sim}18\%$
-of the front-to-full gap here, vs.\ ${\sim}$two-thirds on MLPs. Deep
-trunks need more deep training on harder tasks; \fw{} trades quality for
-compute rather than matching full BP.
+\paragraph{Question 2: is there a budget dial?} Sweeping the trigger
+threshold $\tau$ across two orders of magnitude ($0.005 \to 1.0$) with the
+governor active barely moves the operating point: the backoff cancels eager
+alarms and the budget stays pinned at $6$--$9\%$ of steps---the threshold
+is a floor, not a dial. The dial is the governor itself: sweeping
+$\kappa_{\max}$ from $2000$ down to $50$ traces a smooth, monotone Pareto
+curve---budgets $6\% \to 49\%$ of steps, validation loss $1.773 \to
+1.596$ (Figure~\ref{fig:exp3pareto})---that dominates \lpft{} and
+\textsc{periodic}-$N$ at every tested budget on the transformer: at an
+$8\%$ budget the dial already matches \lpft{} spending $50\%$. One
+parameter selects the compute--quality operating point with no retuning of
+the trigger. (On the CIFAR-10 MLP the dial's high-budget endpoint, a sweep
+not reported in Section~\ref{sec:exp2}, is comparable to but does not beat
+the best fixed $50\%$ schedules: $53.8$ vs.\ $54.2$ for \lpft{}.)
 
-\paragraph{The backoff is a budget dial; the threshold is a floor.}
-Sweeping the trigger threshold $\tau$ across two orders of magnitude
-($0.005 \to 1.0$) with the governor active barely moves the operating
-point: the backoff cancels eager alarms and the budget stays pinned at
-$6$--$9\%$ of steps. The lever that works is the governor itself: sweeping
-the cooldown cap $\kappa_{\max}$ from $2000$ down to $50$ traces a smooth,
-monotone Pareto curve---budgets $6\% \to 49\%$ of steps, validation loss
-$1.773 \to 1.596$ (Figure~\ref{fig:exp3pareto})---that dominates \lpft{} and
-periodic at every tested budget on the transformer: at an $8\%$ budget the
-dial already matches \lpft{} spending $50\%$, and its $49\%$ endpoint
-($1.596 \pm 0.009$) closes more than two-thirds of the front-to-full gap
-at half the deep-step budget. On the CIFAR-10 MLP the dial's high-budget
-endpoint (a sweep not reported in Section~\ref{sec:exp2}) is comparable
-to, but does not beat, the best fixed $50\%$ schedules ($53.8$ vs.\
-$54.2$ for \lpft{}); the dominance claim is
-specific to the transformer. One parameter thus selects the
-compute--quality operating point, with no retuning of the trigger.
+\paragraph{Question 3: is the freezing ratchet's strength robust?} At
+\fw{}'s exact backward-compute budget, \textsc{ratchet}($0.1$) collapses to
+$2.271 \pm 0.04$---worse than periodic---because it freezes five of six
+blocks before the trunk has learned anything, and a ratchet cannot
+un-freeze. \textsc{ratchet}($0.3$) does beat \fw{}'s default ($1.696$ vs.\
+$1.773$) at $1.46\times$ the compute, and remains slightly ahead of the
+\fw{} dial at matched mid-budget compute ($1.696$ at $32\%$ vs.\ $1.717$ at
+$33.5\%$): a \emph{well-timed} ratchet is genuinely competitive in the
+mid-budget regime. The pattern across testbeds is consistent: the ratchet's
+timing is task-critical and unrecoverable when wrong, whereas \fw{} ran
+identical trigger hyperparameters on every testbed in this paper.
 
-\paragraph{The ratchet is fragile where \fw{} is not.} At \fw{}'s exact
-backward-FLOP budget, \textsc{ratchet}($0.1$) collapses to $2.271 \pm
-0.04$---worse than periodic---because it freezes five of six blocks before
-the trunk has learned anything, and a ratchet cannot un-freeze. (The
-catastrophic setting is \textsc{ratchet}($0.1$), not ($0.3$); and note the
-comparison is matched in backward compute---both $22\%$ of
-\textsc{full}---while their deep-step columns differ ($2\%$ vs.\
-$6\%$), since a ratchet's partial-depth steps have no analogue in \fw{};
-the deep-step axis is not apples-to-apples for ratchets.) \textsc{ratchet}($0.3$) does beat
-\fw{}'s default ($1.696$ vs.\ $1.773$) at $1.46\times$ the compute, and
-remains slightly ahead of the \fw{} dial at matched mid-budget FLOPs
-($1.696$ at $555$k~GF vs.\ $1.717$ at $584$k~GF): a \emph{well-timed}
-\textsc{ratchet} is genuinely competitive in the mid-budget regime. Together with the MLP results
-(Section~\ref{sec:exp2}), the pattern is consistent: a well-timed ratchet
-is competitive, but its timing is task-critical and unrecoverable when
-wrong, whereas \fw{} ran identical trigger hyperparameters on every
-testbed in this paper. Revocable bursts buy robustness that irrevocable
-freezing cannot.
+\paragraph{Question 4: does interleaving toxicity survive the optimizer
+change?} It worsens. Periodic interleaving is destructive at every budget
+tested---$1.87$ at $2\%$, worsening monotonically with interleaving
+frequency to $2.40 \pm 0.05$ at a $20\%$ budget, far worse than doing
+nothing deep---and it happens \emph{despite} gradient clipping, which cured
+the SGD case: Adam's update $m/\sqrt{v}$ is approximately scale-invariant
+in the gradient, so clipping the gradient does not clip the step. Damage
+scales with interleaving \emph{frequency}, implicating repeated
+perturbation---each isolated deep step moves trunk features under a head
+sharply co-adapted to the old ones---and trunk moment estimates go stale
+across gaps ($\beta_2 = 0.999$ means a 50-step burst refreshes only
+${\sim}5\%$ of $v$), the schedule-induced analogue of the sparse-update
+pathology that motivates SparseAdam for embedding tables.
 
-
-\paragraph{Interleaving toxicity is optimizer-dependent and clipping does
-not save Adam.} The periodic failure is the MLP collapse of
-Section~\ref{sec:exp2} in a new guise, with two differences. First, damage
-scales monotonically with interleaving \emph{frequency} (worse at period 5
-than 50), implicating repeated perturbation---each isolated deep step moves
-trunk features under a head sharply co-adapted to the old ones, and the
-system churns instead of converging---rather than any single bad step.
-Second, it happens \emph{despite} gradient clipping, which cured the SGD
-case: Adam's update $m/\sqrt{v}$ is approximately scale-invariant in the
-gradient, so clipping the gradient does not clip the step. Trunk moment
-estimates also go stale across gaps ($\beta_2 = 0.999$ means a 50-step burst
-refreshes only ${\sim}5\%$ of $v$), the schedule-induced analogue of the
-sparse-update pathology that motivates SparseAdam for embedding tables.
-
-\paragraph{Episodic optimizer state: the optimizer fires with the BP.}
-If moment estimates are part of the credit-assignment machinery, their
-\emph{state} should be episodic like the bursts themselves. We test four
-variants: \textsc{persist} (status quo), \textsc{reset} (trunk moments
-cleared at burst entry), \textsc{reset-warmup} (reset plus a 10-step
-in-burst learning-rate warmup, mirroring fine-tuning practice when
-unfreezing), and \textsc{episodic} (Adam state exists only inside bursts;
-front phases run on SGD). Table~\ref{tab:optstate} gives the verdict, which
-refined our hypothesis. \textsc{reset-warmup} \emph{rescues} periodic
-interleaving almost entirely ($2.05 \to 1.82$, from far worse than
-front-only to slightly better): the dominant pathology of isolated deep
-steps under Adam is stale-state re-entry at full aggression, not
-perturbation per se. But \textsc{reset} alone \emph{backfires}
-($2.05 \to 2.33$): a freshly initialized Adam step is the most aggressive
-kind, so hygiene without gentleness is worse than staleness. The principle
-that survives is sharper than the one we started with: \emph{the optimizer
-must fire with the BP, and it must fire gently}---bursts amortize a warmup
-naturally, while length-1 episodes can only approximate one by running deep
-steps at reduced learning rate (for periodic, our 10-step warmup on
-length-1 episodes reduces to exactly that, a caveat for interpretation).
-Even fully rescued, periodic at a $10\%$ budget ($1.82$) does not reach
-\fw{} at $6\%$ ($1.77$): adaptive placement retains its advantage. For
-\fw{} itself the variants are a wash ($1.773$ persist vs.\ $1.773$
-reset-warmup)---bursts already re-equilibrate internally---which yields the
-systems result for free: \emph{trunk optimizer state can be discarded
-between bursts at no quality cost}, so Adam's two fp32 moments per trunk
-parameter need exist only during the ${\sim}6\%$ of steps spent in bursts.
-The strict \textsc{episodic} variant fails here ($2.13$), attributable to
-its SGD front phases (transformers train poorly without adaptivity); a
+\paragraph{Question 5: should optimizer state be episodic?}
+Table~\ref{tab:optstate} is the decisive comparison, and it refined our
+hypothesis. \textsc{reset-warmup} \emph{rescues} periodic interleaving
+almost entirely ($2.05 \to 1.82$, from far worse than front-only to
+slightly better): the dominant pathology of isolated deep steps under Adam
+is stale-state re-entry at full aggression. But \textsc{reset} alone
+\emph{backfires} ($2.05 \to 2.33$): a freshly initialized Adam step is the
+most aggressive kind, so hygiene without gentleness is worse than
+staleness. The surviving principle: \emph{the optimizer must fire with the
+BP, and it must fire gently}---bursts amortize a warmup naturally, while
+length-1 episodes can only approximate one by running deep steps at reduced
+learning rate (for periodic, our 10-step warmup on length-1 episodes
+reduces to exactly that, a caveat for interpretation). For \fw{} itself the
+variants are a wash ($1.773$ persist vs.\ $1.773$ reset-warmup)---bursts
+already re-equilibrate internally---which yields the systems result for
+free: \emph{trunk optimizer state can be discarded between bursts at no
+quality cost}, so Adam's two fp32 moments per trunk parameter need exist
+only during the ${\sim}6\%$ of steps spent in bursts. The strict
+\textsc{episodic} variant fails here ($2.13$), attributable to its SGD
+front phases (transformers train poorly without adaptivity); a
 stateless-but-adaptive front optimizer is the natural repair and is future
 work.
 
 \begin{table}[t]
 \centering
-\caption{Optimizer-state ablation on the transformer (validation loss,
-mean $\pm$ std, 3 seeds). Anchors: front-only $1.836$, full BP $1.488$.}
+\caption{Optimizer-state ablation (validation loss, mean $\pm$ std,
+3 seeds). Anchors: front-only $1.836$, full BP $1.488$.}
 \label{tab:optstate}
 \begin{tabular}{lcc}
 \toprule
@@ -187,102 +125,81 @@ Trunk Adam state & \fw{} ($6\%$) & \textsc{periodic}-10 ($10\%$) \\
 \end{tabular}
 \end{table}
 
-\paragraph{Measured resources validate the cost model---with one caveat.}
-End-to-end single runs (2{,}000 steps, identical hardware;
-Appendix~\ref{app:infra}) measure: full BP
-$98.4$s, \fw{} $49.3$s, \textsc{ratchet}($0.1$) $49.7$s, front-only $46.6$s---\fw{}
-and the flops-matched ratchet are equal-cost in wall clock to within $1\%$,
-and \fw{} delivers a real $2.0\times$ end-to-end speedup over full BP at
-this scale (per-step: $23.3$ms front vs.\ $49.2$ms full). The caveat is
-peak activation memory: front-only peaks at $0.77$\,GB, but any schedule
-that ever takes a full-depth step---\fw{} included---peaks at $3.03$\,GB,
-because the peak is set by the deepest single step. \fw{} reduces
-\emph{average} memory and (via episodic state) trunk optimizer memory, not
-the activation peak; activation checkpointing inside bursts, which are only
-${\sim}6\%$ of steps, is the natural remedy and is future work.
-
-\subsection{Is the trigger necessary? Controls and a distribution shift}
+\subsection{Is the trigger necessary? Controls and distribution shifts}
 \label{sec:controls}
 
 Two simpler rivals could explain \fw{}'s results without any closed loop:
 \textsc{ftlp} (spend all depth first, then never again) and \textsc{pburst}
-(bursts on a fixed clock). We test both on the stationary task and under a
-mid-training distribution shift.
+(bursts on a fixed clock). We test both on the stationary task and under
+two mid-training distribution shifts of different severity; complete
+numbers are Tables~\ref{tab:exp3matrix} and~\ref{tab:shift}
+(Appendix~\ref{app:tables}).
 
-\paragraph{Stationary: deep-first is the highest-peak, lowest-valley
-schedule.} At \fw{}'s matched budget, \textsc{ftlp}($0.06$) is the worst
-cell in our entire study ($2.290 \pm 0.035$, far below \textsc{front}):
-$300$ full steps from initialization---before warmup completes---leave a
-half-trained trunk that is then frozen forever. Yet given $3\times$ the
-budget, \textsc{ftlp}($0.2$) is the \emph{best} cheap schedule we measured
-($1.665 \pm 0.007$ at a $20\%$ deep-step budget), ahead of the \fw{} dial
-($1.717$) and \textsc{ratchet}($0.3$) ($1.696$). Deep-first is a bet on
-knowing the right early budget: its peak and its collapse are two settings
-of the same parameter. \textsc{pburst} at matched budget is consistently
-behind \fw{} ($1.814 \pm 0.014$ vs.\ $1.773 \pm 0.013$; $1.801 \pm
-0.010$ with reset-warmup) though far from failure; note its period was set
-\emph{from \fw{}'s own discovered budget}---the clock is a
-hindsight-tuned baseline.
+\paragraph{Question 6: is deep-first enough on a stationary task?} Only if
+its one parameter is guessed correctly. At \fw{}'s matched budget,
+\textsc{ftlp}($0.06$) is the worst cell in our study ($2.290 \pm 0.035$,
+far below \textsc{front}): $300$ full steps from initialization---before
+warmup completes---leave a half-trained trunk that is then frozen forever.
+Given $3\times$ the budget, \textsc{ftlp}($0.2$) is the \emph{best} cheap
+schedule we measured ($1.665 \pm 0.007$ at a $20\%$ deep-step budget).
+Deep-first is a bet on knowing the right early budget: its peak and its
+collapse are two settings of the same parameter. The fixed-cadence clock at
+matched budget is consistently behind \fw{} ($1.814 \pm 0.014$ vs.\
+$1.773 \pm 0.013$; $1.801 \pm 0.010$ with reset-warmup) though far from
+failure; note its period was set \emph{from \fw{}'s own discovered
+budget}---the clock is a hindsight-tuned baseline.
 
-\paragraph{Distribution shift.} We switch the training corpus mid-run
-(tiny Shakespeare $\to$ War and Peace, joint vocabulary; an earlier run
-with a $7\times$ smaller replacement corpus was superseded because
-\textsc{full} overfit it, breaking the anchors---its logs are retained in
-the repository; $10{,}000$ steps,
-switch at step $5{,}400$, placed mid-gap for \textsc{pburst}'s clock so it
-cannot be lucky; schedules are not told). Post-shift validation loss,
-3 seeds:
+\paragraph{Question 7: what happens when the data changes?} We switch the
+training corpus mid-run at a step the schedules are not told, placed
+mid-gap for \textsc{pburst}'s clock so it cannot be lucky: a \emph{mild}
+shift (tiny Shakespeare $\to$ War and Peace) and a \emph{harsh} one ($\to$
+C source code; the front-to-full gap grows from $0.35$ to $0.57$ of loss).
+Under the mild shift \fw{} is the best cheap schedule ($1.549 \pm 0.013$),
+ahead of the fair-placed clock in all three seed pairings ($1.561 \pm
+0.008$), and its result is invariant to where the shift lands, which no
+clock can claim; \textsc{ftlp} drops to the \textsc{front} floor ($1.605$
+vs.\ $1.611$). Under the harsh shift, plain \fw{} ($1.449 \pm 0.005$)
+again edges the fair-placed clock ($1.453$), while \textsc{ftlp} lands
+between the floor and the burst schedules ($1.522 \pm 0.008$; its
+prose-trained trunk transfers generic sequence features to code better than
+a random trunk). The rivals' specific failure cells thus move with the
+condition---which is itself the point: a fixed schedule's fate depends on
+how well its frozen assumption happens to match the condition, and no
+tested condition moved \fw{} out of the top of the cheap field or below
+the \textsc{front} floor.
 
-\begin{table}[t]
-\centering
-\caption{Distribution shift: post-shift validation loss (mean $\pm$ std,
-3 seeds). \fw{} numbers from the fair-placement run (shift at $5{,}400$);
-other schedules from the switch-at-$5{,}000$ run, where \textsc{pburst}'s
-clock coincidentally fired at the shift (its fair-placement result is
-shown).}
-\label{tab:shift}
-\begin{tabular}{lccc}
-\toprule
-Schedule (setting) & Deep steps & Post-shift val.\ loss \\
-\midrule
-\textsc{full} & $100\%$ & $1.238 \pm 0.004$ \\
-\fw{}($\tau{=}0.02$) & $4\%$ & $\mathbf{1.549 \pm 0.013}$ \\
-\textsc{pburst}($833$), fair placement & $6\%$ & $1.561 \pm 0.008$ \\
-\textsc{ftlp}($0.06$) & $6\%$ & $1.605 \pm 0.011$ \\
-\lpft{}($0.9$) & $10\%$ & $1.608 \pm 0.044$ \\
-\textsc{front} & $0\%$ & $1.611 \pm 0.044$ \\
-\bottomrule
-\end{tabular}
-\end{table}
+\paragraph{Question 8: can the trigger be made shift-aware?} \fw{}'s
+documented weakness is that the backoff, stretched long by pre-shift
+saturation, delays post-shift re-escalation (mild shift: $12\%$ of the
+front-to-full gap recovered, vs.\ $18\%$ stationary). The repair is one
+line: reset the cooldown when the loss EMA \emph{jumps above} its running
+minimum---a shift signature, the opposite of the plateau the trigger
+watches for. Under the harsh shift this \emph{governor reset} responds by
+spending $6.7\%$ deep steps (vs.\ plain \fw{}'s $4\%$; the budget is
+self-selected) and reaches $1.411 \pm 0.005$---the best cheap schedule
+under the hardest condition we tested, recovering $24\%$ of the
+front-to-full gap vs.\ plain \fw{}'s $18\%$. The trigger's verdict across
+every test, stated at full strength and no more: bursts carry the
+performance; a fixed clock, its period set with hindsight, ties or
+slightly trails \fw{}; the closed loop's demonstrated products are
+discovering the schedule without that hindsight, robustness when
+assumptions break, and---with the one-line reset---responsiveness to them
+breaking.
 
-\noindent Three observations (Table~\ref{tab:shift}). First, \fw{} is the best
-cheap schedule post-shift, ahead of the fair-placed clock in all three seed
-pairings ($+0.002$, $+0.028$, $+0.005$)---a small, consistent edge---and
-its result is invariant to where the shift lands, which no clock can claim.
-Its burst log shows the mechanism: the trigger stayed silent while front
-steps productively re-fit the head to the new corpus (${\sim}1{,}000$
-steps), then fired ahead of its own backoff trajectory once that cheap
-adaptation saturated. Second, \textsc{ftlp} falls from best cheap schedule
-(stationary, right budget) to the \textsc{front} floor: all its depth was
-spent on a corpus that no longer exists. Third, the shift is mild (English
-prose to English prose) and compresses the cheap field into $0.07$ of loss;
-the dramatic failures in this study occur on \emph{stationary} tasks with
-wrongly-set schedule parameters, not under shift.
+\paragraph{Measured resources validate the cost model---with one caveat.}
+End-to-end single runs (2{,}000 steps, identical hardware;
+Appendix~\ref{app:infra}) measure: full BP $98.4$s, \fw{} $49.3$s,
+\textsc{ratchet}($0.1$) $49.7$s, front-only $46.6$s---\fw{} and the
+compute-matched ratchet are equal-cost in wall clock to within $1\%$, and
+\fw{} delivers a real $2.0\times$ end-to-end speedup over full BP at this
+scale (per-step: $23.3$ms front vs.\ $49.2$ms full). The caveat is peak
+activation memory: front-only peaks at $0.77$\,GB, but any schedule that
+ever takes a full-depth step---\fw{} included---peaks at $3.03$\,GB,
+because the peak is set by the deepest single step. \fw{} reduces
+\emph{average} memory and (via episodic state) trunk optimizer memory, not
+the activation peak; activation checkpointing inside bursts, which are
+only ${\sim}6\%$ of steps, is the natural remedy and is future work.
 
-\paragraph{The trigger's verdict, stated at full strength and no more.}
-Across every test: consecutive bursts are the load-bearing mechanism; a
-fixed clock, its period set with hindsight, ties or slightly trails
-\fw{}; the
-trigger's demonstrated contributions are (i) discovering the burst schedule
-without that hindsight ($\tau$ inert across $200\times$, identical
-configuration on every testbed, budget self-selected per task), (ii) a
-small consistent edge stationary ($+0.04$) and under shift ($+0.01$), and
-(iii) placement invariance. One honest weakness: post-shift, \fw{}
-recovered $12\%$ of the front-to-full gap versus $18\%$
-stationary---the backoff that protects it on stationary tasks had
-lengthened its cooldown pre-shift, capping how fast it re-escalates;
-a shift-aware governor reset is an obvious next design.
-
-\noindent The results so far take the premise---that cheap front steps carry most
-per-step progress---as given; the experiments that supplied it are reported
-in Appendix~\ref{sec:exp1}.
+\noindent The results so far take the premise---that cheap front steps
+carry most per-step progress---as given; the experiments that supplied it
+are reported in Appendix~\ref{sec:exp1}.
