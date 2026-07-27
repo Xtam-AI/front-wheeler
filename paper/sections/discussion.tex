@@ -72,8 +72,8 @@ Most training steps do not need deep credit assignment; the hard part is
 knowing which ones do---and every cheap schedule is an answer to that
 question. The fixed answers each win where their built-in assumption holds
 and fail outright where it does not: the best mid-budget schedule in this
-study (deep-first, right budget) is also its worst cell (deep-first, wrong
-budget) and drops to the never-deep floor when the data changes. \fw{}'s
+study (deep-first, right budget) is also its worst non-interleaved cell
+(deep-first, wrong budget) and drops to the never-deep floor when the data changes. \fw{}'s
 answer---front steps by default, consecutive bursts when a plateau says the
 cheap subspace is exhausted, backoff when a burst reveals the plateau was
 global---hard-codes none of those timings: one configuration, two

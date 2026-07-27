@@ -3,7 +3,7 @@
 \label{app:tables}
 All numbers are mean $\pm$ std over seeds $\{0,1,2\}$ unless $n$ is noted; regenerate this appendix with \texttt{python scripts/report.py --latex}.
 \begin{table}[h]\centering\small
-\caption{MLPs, stationary: complete population, all budgets. Test accuracy; compare only within matched budget tiers.}
+\caption{MLPs, stationary: all step-budget schedules, all budgets. Test accuracy; compare only within matched budget tiers. \textsc{ratchet} is compared on the compute axis in the text (Section~\ref{sec:exp2}).}
 \label{tab:exp2}
 \begin{tabular}{lccc}\toprule
 Schedule & Deep steps & MNIST & CIFAR-10 \\\midrule
@@ -36,6 +36,7 @@ FTLP(.06) & 6.0\% & 21.9\% & $2.2901 \pm 0.0347$ \\
 FTLP(.2) & 20.0\% & 33.5\% & $1.6646 \pm 0.0071$ \\
 FULL & 100.0\% & 100.0\% & $1.4881 \pm 0.0079$ \\
 FW(t=.005,k=2000) & 8.7\% & 24.1\% & $1.7745 \pm 0.0074$ \\
+FW(t=.02,k=2000) & 6.0\% & 21.9\% & $1.7733 \pm 0.0132$ \\
 FW(t=.05,k=2000) & 6.0\% & 21.9\% & $1.7761 \pm 0.0110$ \\
 FW(t=.1,k=100) & 32.7\% & 44.0\% & $1.6678 \pm 0.0104$ \\
 FW(t=.1,k=200) & 20.0\% & 33.5\% & $1.7166 \pm 0.0091$ \\
@@ -50,6 +51,7 @@ LP-FT(.95) & 5.0\% & 21.0\% & $1.8349 \pm 0.0043$ \\
 PBURST(250) & 20.0\% & 33.5\% & $1.7469 \pm 0.0158$ \\
 PBURST(833) & 6.0\% & 21.9\% & $1.8136 \pm 0.0143$ \\
 PBURST(833)+resetwarmup & 6.0\% & 21.9\% & $1.8012 \pm 0.0101$ \\
+PERIODIC-10 & 10.0\% & 25.2\% & $2.0467 \pm 0.1268$ \\
 PERIODIC-20 & 5.0\% & 21.0\% & $1.9102 \pm 0.0586$ \\
 PERIODIC-5 & 20.0\% & 33.5\% & $2.4038 \pm 0.0463$ \\
 PERIODIC-50 & 2.0\% & 18.5\% & $1.8725 \pm 0.0314$ \\
@@ -57,7 +59,7 @@ RATCHET(.1) & 2.0\% & 21.9\% & $2.2714 \pm 0.0422$ \\
 RATCHET(.3) & 6.0\% & 31.8\% & $1.6964 \pm 0.0089$ \\
 \bottomrule\end{tabular}\end{table}
 \begin{table}[h]\centering\small
-\caption{Distribution shifts: post-shift validation loss. Mild = tiny Shakespeare $\to$ War and Peace; harsh = $\to$ C source code; both switch at a step placed mid-gap for \textsc{pburst}'s clock in the fair columns. `+govreset' is \fw{} with the shift-aware governor reset.}
+\caption{Distribution shifts: post-shift validation loss. Mild = tiny Shakespeare $\to$ War and Peace; harsh = $\to$ C source code. In the mild column, \fw{} and \textsc{pburst} use the fair placement (switch at step 5{,}400, mid-gap for the clock) and the anchors and one-switch/deep-first rows the original placement (5{,}000); \fw{} moves only ${\sim}0.009$ between placements. The harsh column uses the fair placement throughout. `+govreset' is \fw{} with the shift-aware governor reset.}
 \label{tab:shift}
 \begin{tabular}{lccc}\toprule
 Schedule & Deep steps & Mild & Harsh \\\midrule

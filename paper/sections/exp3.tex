@@ -137,8 +137,8 @@ numbers are Tables~\ref{tab:exp3matrix} and~\ref{tab:shift}
 
 \paragraph{Deep-first and the fixed-cadence clock, stationary.} Only if
 its one parameter is guessed correctly. At \fw{}'s matched budget,
-\textsc{ftlp}($0.06$) is the worst cell in our study ($2.290 \pm 0.035$,
-far below \textsc{front}): $300$ full steps from initialization---before
+\textsc{ftlp}($0.06$) is the worst cell among non-interleaved schedules
+in our study ($2.290 \pm 0.035$, far below \textsc{front}): $300$ full steps from initialization---before
 warmup completes---leave a half-trained trunk that is then frozen forever.
 Given $3\times$ the budget, \textsc{ftlp}($0.2$) is the \emph{best} cheap
 schedule we measured ($1.665 \pm 0.007$ at a $20\%$ deep-step budget).
@@ -153,7 +153,11 @@ budget}---the clock is a hindsight-tuned baseline.
 training corpus mid-run at a step the schedules are not told, placed
 mid-gap for \textsc{pburst}'s clock so it cannot be lucky: a \emph{mild}
 shift (tiny Shakespeare $\to$ War and Peace) and a \emph{harsh} one ($\to$
-C source code; the front-to-full gap grows from $0.35$ to $0.57$ of loss).
+C source code; the post-shift front-to-full gap is $0.57$ of loss, vs.\
+$0.35$ stationary). (An earlier mild-shift run used a $7\times$ smaller
+replacement corpus and was superseded because \textsc{full} overfit it,
+breaking the anchors; its logs are retained in the repository under the
+\texttt{shift} tag.)
 Under the mild shift \fw{} is the best cheap schedule ($1.549 \pm 0.013$),
 ahead of the fair-placed clock in all three seed pairings ($1.561 \pm
 0.008$), and its result is invariant to where the shift lands, which no
@@ -168,15 +172,16 @@ how well its frozen assumption happens to match the condition, and no
 tested condition moved \fw{} out of the top of the cheap field or below
 the \textsc{front} floor.
 
-\paragraph{A shift-aware trigger.} \fw{}'s
-documented weakness is that the backoff, stretched long by pre-shift
-saturation, delays post-shift re-escalation (mild shift: $12\%$ of the
-front-to-full gap recovered, vs.\ $18\%$ stationary). The repair is one
-line: reset the cooldown when the loss EMA \emph{jumps above} its running
-minimum---a shift signature, the opposite of the plateau the trigger
-watches for. Under the harsh shift this \emph{governor reset} responds by
-spending $6.7\%$ deep steps (vs.\ plain \fw{}'s $4\%$; the budget is
-self-selected) and reaches $1.411 \pm 0.005$---the best cheap schedule
+\paragraph{A shift-aware trigger.} Under the mild shift, plain \fw{}
+re-escalates adequately on its own (recovering $17\%$ of the post-shift
+front-to-full gap, essentially its stationary $18\%$). The harsh shift
+exposes the weakness: the backoff, stretched long by pre-shift saturation,
+pins plain \fw{}'s budget at $4.0\%$ even though the world has changed
+and far more depth is warranted. The repair is one line: reset the
+cooldown when the loss EMA \emph{jumps above} its running minimum---a
+shift signature, the opposite of the plateau the trigger watches for.
+Under the harsh shift this \emph{governor reset} self-selects a $6.7\%$
+deep-step budget and reaches $1.411 \pm 0.005$---the best cheap schedule
 under the hardest condition we tested, recovering $24\%$ of the
 front-to-full gap vs.\ plain \fw{}'s $18\%$. The trigger's verdict across
 every test, stated at full strength and no more: bursts carry the

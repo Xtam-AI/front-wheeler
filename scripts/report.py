@@ -27,9 +27,11 @@ def finals(subdir, tag_filter, metric, step_col, full_steps_expected=None):
 
 NAME = {
     ("full",""): "FULL", ("front",""): "FRONT", ("bcd",""): "BCD",
-    ("fw",""): "FW(t=.02,k=2000)", ("fw","tau0005"): "FW(t=.005,k=2000)",
+    ("fw",""): "FW(t=.02,k=2000)", ("fw","tau002"): "FW(t=.02,k=2000)",
+    ("fw","tau0005"): "FW(t=.005,k=2000)",
     ("fw","tau001"): "FW(t=.01,k=2000)", ("fw","tau005"): "FW(t=.05,k=2000)",
-    ("periodic",""): "PERIODIC-10", ("periodic","p2"): "PERIODIC-2",
+    ("periodic",""): "PERIODIC-10", ("periodic","p10"): "PERIODIC-10",
+    ("periodic","p2"): "PERIODIC-2",
     ("periodic","p5"): "PERIODIC-5", ("periodic","p20"): "PERIODIC-20",
     ("periodic","p50"): "PERIODIC-50",
     ("lpft","sf05"): "LP-FT(.5)", ("lpft","sf08"): "LP-FT(.8)",
@@ -127,8 +129,10 @@ def latex_appendix(path):
             rows.setdefault(name, {})[col] = (grp.metric.mean(), grp.metric.std(),
                                               len(grp), grp.deep.mean())
     L.append("\\begin{table}[h]\\centering\\small")
-    L.append("\\caption{MLPs, stationary: complete population, all budgets. "
-             "Test accuracy; compare only within matched budget tiers.}")
+    L.append("\\caption{MLPs, stationary: all step-budget schedules, all "
+             "budgets. Test accuracy; compare only within matched budget "
+             "tiers. \\textsc{ratchet} is compared on the compute axis in "
+             "the text (Section~\\ref{sec:exp2}).}")
     L.append("\\label{tab:exp2}")
     L.append("\\begin{tabular}{lccc}\\toprule")
     L.append("Schedule & Deep steps & MNIST & CIFAR-10 \\\\\\midrule")
@@ -141,11 +145,11 @@ def latex_appendix(path):
     L.append("\\bottomrule\\end{tabular}\\end{table}")
 
     # --- transformer stationary
-    d = finals("exp3_char", lambda s, t: t in ("", "tau0005", "tau001", "tau005",
-               "p2", "p5", "p20", "p50", "sf05", "sf08", "sf09", "sf095",
-               "rb01", "rb03", "s006", "s02", "p833", "p250", "p833rw",
-               "gov100", "gov200", "gov400", "gov800", "lever01", "lever01nb"),
-               "val_loss", "step")
+    d = finals("exp3_char", lambda s, t: t in ("", "tau002", "tau0005",
+               "tau005", "p5", "p10", "p20", "p50", "sf05", "sf08", "sf09",
+               "sf095", "rb01", "rb03", "s006", "s02", "p833", "p250",
+               "p833rw", "gov100", "gov200", "gov400", "gov800", "lever01",
+               "lever01nb"), "val_loss", "step")
     fg = d[(d.sched == "full") & (d.tag == "")].gf.mean()
     L.append("\\begin{table}[h]\\centering\\small")
     L.append("\\caption{Transformer, stationary: complete population. "
@@ -167,9 +171,13 @@ def latex_appendix(path):
     L.append("\\begin{table}[h]\\centering\\small")
     L.append("\\caption{Distribution shifts: post-shift validation loss. "
              "Mild = tiny Shakespeare $\\to$ War and Peace; harsh = $\\to$ C "
-             "source code; both switch at a step placed mid-gap for "
-             "\\textsc{pburst}'s clock in the fair columns. `+govreset' is "
-             "\\fw{} with the shift-aware governor reset.}")
+             "source code. In the mild column, \\fw{} and \\textsc{pburst} "
+             "use the fair placement (switch at step 5{,}400, mid-gap for "
+             "the clock) and the anchors and one-switch/deep-first rows the "
+             "original placement (5{,}000); \\fw{} moves only ${\\sim}0.009$ "
+             "between placements. The harsh column uses the fair placement "
+             "throughout. `+govreset' is \\fw{} with the shift-aware "
+             "governor reset.}")
     L.append("\\label{tab:shift}")
     L.append("\\begin{tabular}{lccc}\\toprule")
     L.append("Schedule & Deep steps & Mild & Harsh \\\\\\midrule")

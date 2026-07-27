@@ -57,6 +57,18 @@ for lbl, pm, ps, sc, tg in [
 ]:
     check(lbl, pm, ps, "exp3_char", sc, tg, "val_loss")
 
+print("--- Harsh shift (post-shift val loss) ---")
+for lbl, pm, ps, sc, tg in [
+    ("FULL harsh", 0.981, 0.006, "full", "hshift"),
+    ("FW harsh", 1.449, 0.005, "fw", "hshift"),
+    ("FW+govreset harsh", 1.411, 0.005, "fw", "hshiftgr"),
+    ("PBURST harsh", 1.452, 0.002, "pburst", "hshift"),
+    ("FTLP harsh", 1.522, 0.008, "ftlp", "hshift"),
+    ("LP-FT harsh", 1.540, 0.032, "lpft", "hshift"),
+    ("FRONT harsh", 1.550, 0.032, "front", "hshift"),
+]:
+    check(lbl, pm, ps, "exp3_char", sc, tg, "val_loss")
+
 print("--- Table: optimizer state (val loss) ---")
 for lbl, pm, ps, sc, tg in [
     ("FW persist", 1.773, 0.013, "fw", "tau002"),

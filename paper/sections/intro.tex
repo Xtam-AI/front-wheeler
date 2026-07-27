@@ -43,8 +43,8 @@ character-level transformer, three seeds throughout:
   \textsc{periodic}-$N$ schedules (one full step every $N$th step) by
   $+1.5$ (MNIST) and $+5.1$ (CIFAR-10) points and one-switch
   \lpft{} \citep{kumar2022finetuning} by $+2.0$ and $+6.1$---margins that
-  \emph{grow} with task difficulty, and that survive the worst rather than
-  best trigger threshold. On the transformer, \fw{} spending ${\sim}6\%$ of
+  \emph{grow} with task difficulty; even the worst trigger threshold
+  retains $+0.9$ and $+3.6$. On the transformer, \fw{} spending ${\sim}6\%$ of
   steps at full depth matches \lpft{} spending $50\%$, and at low budget
   only burst-structured schedules meaningfully improve on never
   back-propagating deep at all. The backoff cap doubles as a \emph{budget
@@ -56,8 +56,8 @@ character-level transformer, three seeds throughout:
   catastrophic on the transformer, while \fw{} runs identical trigger
   hyperparameters throughout. Controls disentangle the mechanism
   (Section~\ref{sec:controls}): a deep-first schedule owns both the best
-  cheap stationary cell (at the right budget) and the worst cell in the
-  study (at \fw{}'s budget), with a fate under shift that depends on the
+  cheap stationary cell (at the right budget) and the worst
+  non-interleaved cell in the study (at \fw{}'s budget), with a fate under shift that depends on the
   condition; a fixed-cadence clock, its period set with hindsight from
   \fw{}'s own discovered budget, ties or slightly trails \fw{}
   everywhere---bursts carry the performance; the trigger's product is
