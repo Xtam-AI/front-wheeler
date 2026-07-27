@@ -21,6 +21,8 @@ SHAKESPEARE_URL = ("https://raw.githubusercontent.com/karpathy/char-rnn/"
                    "master/data/tinyshakespeare/input.txt")
 ALICE_URL = "https://www.gutenberg.org/files/11/11-0.txt"
 WARPEACE_URL = "https://www.gutenberg.org/files/2600/2600-0.txt"
+CODE_URL = ("https://raw.githubusercontent.com/azadkuh/sqlite-amalgamation/"
+            "master/sqlite3.c")
 
 
 # ---------------------------------------------------------------- model
@@ -112,6 +114,8 @@ def load_data(device, shift=False, corpus_b="alice"):
         return data[:n].to(device), data[n:].to(device), len(chars)
     if corpus_b == "alice":
         text_b = _fetch("alice.txt", ALICE_URL)
+    elif corpus_b == "code":
+        text_b = _fetch("sqlite3.c", CODE_URL)[:3_000_000]
     else:
         text_b = _fetch("warpeace.txt", WARPEACE_URL)
     chars = sorted(set(text_a) | set(text_b))
@@ -215,6 +219,7 @@ def run(args):
     burst_left = 0
     cooldown = args.check_every
     steps_since_burst = 0
+    ema_min = None
 
     for step in range(args.steps):
         if args.shift_at > 0 and step == args.shift_at:
@@ -248,6 +253,16 @@ def run(args):
             else:
                 mode = "front"
                 steps_since_burst += 1
+                if args.governor_reset and ema is not None:
+                    if ema_min is None or ema < ema_min:
+                        ema_min = ema
+                    elif (ema > ema_min * (1 + args.shift_jump)
+                          and cooldown > args.check_every):
+                        # loss jumped: the world changed; drop accumulated
+                        # backoff so the trigger can respond promptly
+                        cooldown = args.check_every
+                        steps_since_burst = max(steps_since_burst, cooldown)
+                        ema_min = ema
                 if (steps_since_burst >= cooldown
                         and steps_since_burst % args.check_every == 0):
                     if ema_at_check is not None:
@@ -324,7 +339,12 @@ def main():
     p.add_argument("--shift-at", type=int, default=0,
                    help="if >0, switch training corpus at this step (A->B)")
     p.add_argument("--shift-corpus", default="warpeace",
-                   choices=["alice", "warpeace"])
+                   choices=["alice", "warpeace", "code"])
+    p.add_argument("--governor-reset", action="store_true",
+                   help="fw: reset backoff cooldown when the loss EMA jumps "
+                        "above its running minimum (shift signature)")
+    p.add_argument("--shift-jump", type=float, default=0.05,
+                   help="relative EMA jump that triggers a governor reset")
     p.add_argument("--ratchet-by", type=float, default=0.3,
                    help="ratchet: fraction of training by which all-but-front is frozen")
     p.add_argument("--seed", type=int, default=0)
