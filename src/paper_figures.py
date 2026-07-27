@@ -95,64 +95,67 @@ def finals(df):
                                     frac=("full_frac", "mean"))
 
 
+FW_POOL = {"exp2": ["fw", "fw_tau0005", "fw_tau001", "fw_tau005"],
+           "exp2_cifar10": ["fw", "fw_tau0005", "fw_tau005"]}
+
+
 def fig_pareto():
-    fig, axes = plt.subplots(1, 2, figsize=(6.5, 3.1))
-    for ax, sub, title in [(axes[0], "exp2", "MNIST"),
-                           (axes[1], "exp2_cifar10", "CIFAR-10")]:
+    for sub, title, fname in [("exp2", "MNIST", "exp2_pareto_mnist"),
+                              ("exp2_cifar10", "CIFAR-10", "exp2_pareto_cifar")]:
         df = load(sub)
         f_all = df.loc[df.groupby(["variant", "seed"])["epoch"].idxmax()].copy()
         f_all["full_frac"] = f_all["full_steps"] / f_all["step"]
         s = f_all.groupby("variant").agg(acc=("test_acc", "mean"),
                                          sd=("test_acc", "std"),
                                          frac=("full_frac", "mean"))
+        fig, ax = plt.subplots(figsize=(5.4, 3.3))
         for fam, color, lab, (li, dx, dy, ha) in [
-                ("periodic", RED, "periodic-N", (0, -4, -9, "left")),
-                ("lpft", AQUA, "LP-FT", (2, 7, -13, "left"))]:
+                ("periodic", RED, "periodic-N", (0, -4, -12, "left")),
+                ("lpft", AQUA, "LP-FT", (2, 12, -16, "left"))]:
             pts = sorted([(BUDGET[v], r.acc, r.sd) for v, r in s.iterrows()
                           if v in BUDGET and v.startswith(fam)])
             x, y, e = zip(*pts)
-            ax.errorbar(x, y, yerr=e, color=color, marker="o", ms=3.5,
+            ax.errorbar(x, y, yerr=e, color=color, marker="o", ms=4,
                         capsize=2, elinewidth=0.8)
             ax.annotate(lab, (x[li], y[li]), xytext=(dx, dy),
-                        textcoords="offset points", color=color, fontsize=8.5,
+                        textcoords="offset points", color=color, fontsize=9,
                         ha=ha)
-        # pool all fw tau variants x seeds into one marker; per-tau numbers
-        # live in the text -- separate markers are unreadable at this x-range
-        fw_runs = f_all[f_all.variant.str.startswith("fw")]
+        fw_runs = f_all[f_all.variant.isin(FW_POOL[sub])]
         fx, fy = fw_runs.full_frac.mean(), fw_runs.test_acc.mean()
         ax.errorbar([fx], [fy], yerr=[[fy - fw_runs.test_acc.min()],
                                       [fw_runs.test_acc.max() - fy]],
-                    color=BLUE, marker="D", ms=5.5, ls="none", capsize=2.5,
-                    elinewidth=0.9)
+                    color=BLUE, marker="D", ms=6.5, ls="none", capsize=3,
+                    elinewidth=1.0)
         ax.annotate("FW (adaptive)", (fx, fw_runs.test_acc.max()),
-                    xytext=(0, 8), textcoords="offset points", color=BLUE,
-                    fontsize=8.5, ha="center", fontweight="bold")
+                    xytext=(0, 9), textcoords="offset points", color=BLUE,
+                    fontsize=9.5, ha="center", fontweight="bold")
         b = s.loc["bcd"]
         ax.errorbar([b.frac], [b.acc], yerr=[b.sd], color=VIOLET, marker="s",
-                    ms=4, ls="none", capsize=2, elinewidth=0.8,
+                    ms=4.5, ls="none", capsize=2, elinewidth=0.8,
                     markerfacecolor="white")
-        ax.annotate("BCD", (b.frac, b.acc), xytext=(18, -18),
-                    textcoords="offset points", color=VIOLET, fontsize=8.5,
+        ax.annotate("BCD", (b.frac, b.acc), xytext=(22, -20),
+                    textcoords="offset points", color=VIOLET, fontsize=9,
                     arrowprops=dict(arrowstyle="-", color=VIOLET, lw=0.6,
                                     shrinkA=1, shrinkB=3))
-        for v, ls, lab in [("full", "--", "full BP (100%)"),
-                           ("front", ":", "front only (0%)")]:
+        for v, ls, lab, (xf, ha) in [
+                ("full", "--", "full BP (100%)", (0.02, "left")),
+                ("front", ":", "front only (0%)", (0.02, "left"))]:
             r = s.loc[v]
             ax.axhline(r.acc, color=GRAY_M, ls=ls, lw=1.0, zorder=0)
-            ax.annotate(lab, (0.98, r.acc), xycoords=("axes fraction", "data"),
-                        xytext=(0, 2), textcoords="offset points",
-                        color=GRAY_D, fontsize=8, ha="right")
+            ax.annotate(lab, (xf, r.acc), xycoords=("axes fraction", "data"),
+                        xytext=(0, 3), textcoords="offset points",
+                        color=GRAY_D, fontsize=8.5, ha=ha)
         ax.set_xscale("log")
         ax.set_xticks([.02, .05, .1, .2, .5])
         ax.set_xticklabels(["2%", "5%", "10%", "20%", "50%"])
         ax.set_title(title, loc="left")
         ax.set_xlabel("full-backprop budget (fraction of steps, log)")
+        ax.set_ylabel("final test accuracy")
         lo, hi = ax.get_ylim()
-        ax.set_ylim(lo - 0.04 * (hi - lo), hi + 0.10 * (hi - lo))
-    axes[0].set_ylabel("final test accuracy")
-    fig.tight_layout()
-    fig.savefig(os.path.join(OUT, "exp2_pareto.pdf"))
-    plt.close(fig)
+        ax.set_ylim(lo - 0.04 * (hi - lo), hi + 0.12 * (hi - lo))
+        fig.tight_layout()
+        fig.savefig(os.path.join(OUT, fname + ".pdf"))
+        plt.close(fig)
 
 
 # ---------------------------------------------------------------- Fig 3: sparsity
