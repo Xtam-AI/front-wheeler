@@ -104,9 +104,14 @@ specific to the transformer. One parameter thus selects the
 compute--quality operating point, with no retuning of the trigger.
 
 \paragraph{The ratchet is fragile where \fw{} is not.} At \fw{}'s exact
-backward-FLOP budget, \textsc{ratchet}($0.1$) collapses to $2.271 \pm 0.04$---worse
-than periodic---because it freezes five of six blocks before the trunk has
-learned anything, and a ratchet cannot un-freeze. \textsc{ratchet}($0.3$) does beat
+backward-FLOP budget, \textsc{ratchet}($0.1$) collapses to $2.271 \pm
+0.04$---worse than periodic---because it freezes five of six blocks before
+the trunk has learned anything, and a ratchet cannot un-freeze. (The
+catastrophic setting is \textsc{ratchet}($0.1$), not ($0.3$); and note the
+comparison is matched in backward compute---both $22\%$ of
+\textsc{full}---while their deep-step columns differ ($2\%$ vs.\
+$6\%$), since a ratchet's partial-depth steps have no analogue in \fw{};
+the deep-step axis is not apples-to-apples for ratchets.) \textsc{ratchet}($0.3$) does beat
 \fw{}'s default ($1.696$ vs.\ $1.773$) at $1.46\times$ the compute, and
 remains slightly ahead of the \fw{} dial at matched mid-budget FLOPs
 ($1.696$ at $555$k~GF vs.\ $1.717$ at $584$k~GF): a \emph{well-timed}
@@ -245,7 +250,7 @@ Schedule (setting) & Deep steps & Post-shift val.\ loss \\
 \end{tabular}
 \end{table}
 
-Three observations (Table~\ref{tab:shift}). First, \fw{} is the best
+\noindent Three observations (Table~\ref{tab:shift}). First, \fw{} is the best
 cheap schedule post-shift, ahead of the fair-placed clock in all three seed
 pairings ($+0.002$, $+0.028$, $+0.005$)---a small, consistent edge---and
 its result is invariant to where the shift lands, which no clock can claim.
@@ -272,6 +277,6 @@ stationary---the backoff that protects it on stationary tasks had
 lengthened its cooldown pre-shift, capping how fast it re-escalates;
 a shift-aware governor reset is an obvious next design.
 
-The results so far take the premise---that cheap front steps carry most
+\noindent The results so far take the premise---that cheap front steps carry most
 per-step progress---as given; the experiments that supplied it are reported
 in Appendix~\ref{sec:exp1}.

@@ -42,7 +42,7 @@ XTAM Research Labs\\
 \begin{abstract}
 Backpropagating through every layer on every step is the single largest cost
 of training, yet most steps may not need deep credit assignment. We propose
-\emph{front wheeler} (\fw{}): by default, each step updates only the last
+\emph{Front Wheeler} (\fw{}): by default, each step updates only the last
 hidden layer and the readout (backward through two weight matrices); a
 \emph{burst} of full-backpropagation steps fires only when a loss plateau
 signals that the cheap subspace is exhausted, with exponential backoff when a
@@ -68,8 +68,8 @@ worse than second-best among cheap schedules and never fails. Three mechanism fi
 method: (i) \emph{isolated} full-depth steps interleaved with cheap steps
 are actively destructive---collapsing MLPs via dead units and degrading the
 transformer monotonically with interleaving frequency---and burst structure
-is what makes deep steps safe; (ii) under Adam the damage persists despite
-gradient clipping, since Adam's scale-invariant updates neutralize
+is what makes deep steps safe; (ii) the damage is \emph{optimizer-dependent}: gradient clipping cures
+it under SGD but not under Adam, whose scale-invariant updates neutralize
 clipping; \fw{}'s burst structure protects it organically, which unlocks a
 purely \emph{episodic} optimizer---trunk moment estimates discardable
 between bursts at no quality cost, a systems win rather than a convergence
@@ -80,7 +80,6 @@ state of the art.
 \end{abstract}
 
 \input{sections/intro}
-\input{sections/glossary}
 \input{sections/related}
 \input{sections/framework}
 \input{sections/exp2}
@@ -99,6 +98,8 @@ logs in the repository.
 \bibliography{refs}
 
 \appendix
+
+\input{sections/glossary}
 
 \input{sections/exp1}
 

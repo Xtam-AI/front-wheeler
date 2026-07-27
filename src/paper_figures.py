@@ -20,8 +20,8 @@ BLUE, AQUA, RED, VIOLET = "#2a78d6", "#1baf7a", "#e34948", "#4a3aa7"
 GRAY_D, GRAY_M, GRAY_L = "#3a3a38", "#8a8985", "#c3c2bd"
 
 plt.rcParams.update({
-    "font.size": 8, "axes.labelsize": 8, "axes.titlesize": 9,
-    "xtick.labelsize": 7.5, "ytick.labelsize": 7.5, "legend.fontsize": 7,
+    "font.size": 9.5, "axes.labelsize": 9.5, "axes.titlesize": 10.5,
+    "xtick.labelsize": 9, "ytick.labelsize": 9, "legend.fontsize": 8.5,
     "axes.spines.top": False, "axes.spines.right": False,
     "axes.grid": True, "grid.alpha": 0.15, "grid.linewidth": 0.5,
     "lines.linewidth": 1.6, "pdf.fonttype": 42,
@@ -48,7 +48,7 @@ def curve(df, variant):
 
 # ---------------------------------------------------------------- Fig 1: exp1
 def fig_exp1():
-    fig, axes = plt.subplots(1, 2, figsize=(6.5, 2.5))
+    fig, axes = plt.subplots(1, 2, figsize=(6.5, 3.0))
     specs = [("ep", BLUE, "EP (gradient)", 5), ("dfa", AQUA, "DFA (local)", -7),
              ("rmhebb", VIOLET, "RM-Hebb (scalar)", 0)]
     for ax, sub, title in [(axes[0], "exp1", "MNIST"),
@@ -59,7 +59,7 @@ def fig_exp1():
             ax.plot(mu.index, mu.values, color=c)
             ax.fill_between(mu.index, mu - sd, mu + sd, color=c, alpha=0.15, lw=0)
             ax.annotate(lab, (mu.index[-1], mu.values[-1]), xytext=(3, dy),
-                        textcoords="offset points", color=c, fontsize=7,
+                        textcoords="offset points", color=c, fontsize=8.5,
                         va="center")
         for v, ls, lab, dy in [("dense", "-", "dense BP", 2),
                                ("readout", "--", "readout", -8),
@@ -69,7 +69,7 @@ def fig_exp1():
             ax.axhline(y, color=GRAY_M, ls=ls, lw=1.0, zorder=0)
             ax.annotate(lab, (0.02, y), xycoords=("axes fraction", "data"),
                         xytext=(0, dy), textcoords="offset points",
-                        color=GRAY_D, fontsize=6.5)
+                        color=GRAY_D, fontsize=8)
         ax.set_title(title, loc="left")
         ax.set_xlabel("epoch")
         ax.set_xlim(left=0)
@@ -96,7 +96,7 @@ def finals(df):
 
 
 def fig_pareto():
-    fig, axes = plt.subplots(1, 2, figsize=(6.5, 2.6))
+    fig, axes = plt.subplots(1, 2, figsize=(6.5, 3.1))
     for ax, sub, title in [(axes[0], "exp2", "MNIST"),
                            (axes[1], "exp2_cifar10", "CIFAR-10")]:
         df = load(sub)
@@ -114,7 +114,7 @@ def fig_pareto():
             ax.errorbar(x, y, yerr=e, color=color, marker="o", ms=3.5,
                         capsize=2, elinewidth=0.8)
             ax.annotate(lab, (x[li], y[li]), xytext=(dx, dy),
-                        textcoords="offset points", color=color, fontsize=7,
+                        textcoords="offset points", color=color, fontsize=8.5,
                         ha=ha)
         # pool all fw tau variants x seeds into one marker; per-tau numbers
         # live in the text -- separate markers are unreadable at this x-range
@@ -126,13 +126,13 @@ def fig_pareto():
                     elinewidth=0.9)
         ax.annotate("FW (adaptive)", (fx, fw_runs.test_acc.max()),
                     xytext=(0, 8), textcoords="offset points", color=BLUE,
-                    fontsize=7, ha="center", fontweight="bold")
+                    fontsize=8.5, ha="center", fontweight="bold")
         b = s.loc["bcd"]
         ax.errorbar([b.frac], [b.acc], yerr=[b.sd], color=VIOLET, marker="s",
                     ms=4, ls="none", capsize=2, elinewidth=0.8,
                     markerfacecolor="white")
         ax.annotate("BCD", (b.frac, b.acc), xytext=(18, -18),
-                    textcoords="offset points", color=VIOLET, fontsize=7,
+                    textcoords="offset points", color=VIOLET, fontsize=8.5,
                     arrowprops=dict(arrowstyle="-", color=VIOLET, lw=0.6,
                                     shrinkA=1, shrinkB=3))
         for v, ls, lab in [("full", "--", "full BP (100%)"),
@@ -141,7 +141,7 @@ def fig_pareto():
             ax.axhline(r.acc, color=GRAY_M, ls=ls, lw=1.0, zorder=0)
             ax.annotate(lab, (0.98, r.acc), xycoords=("axes fraction", "data"),
                         xytext=(0, 2), textcoords="offset points",
-                        color=GRAY_D, fontsize=6.5, ha="right")
+                        color=GRAY_D, fontsize=8, ha="right")
         ax.set_xscale("log")
         ax.set_xticks([.02, .05, .1, .2, .5])
         ax.set_xticklabels(["2%", "5%", "10%", "20%", "50%"])
@@ -158,7 +158,7 @@ def fig_pareto():
 # ---------------------------------------------------------------- Fig 3: sparsity
 def fig_sparsity():
     df = load("exp1")
-    fig, ax = plt.subplots(figsize=(3.2, 2.3))
+    fig, ax = plt.subplots(figsize=(3.6, 2.6))
     kept = {"sp03": .7, "": .5, "sp07": .3, "sp09": .1}
     for base, color, lab in [("ep", BLUE, "EP"), ("dfa", AQUA, "DFA")]:
         pts = []
@@ -172,14 +172,14 @@ def fig_sparsity():
         ax.errorbar(x, y, yerr=e, color=color, marker="o", ms=3.5, capsize=2,
                     elinewidth=0.8)
         ax.annotate(lab, (x[-1], y[-1]), xytext=(5, 0), va="center",
-                    textcoords="offset points", color=color, fontsize=7)
+                    textcoords="offset points", color=color, fontsize=8.5)
     ax.margins(x=0.15)
     g = df[df.variant == "readout"]
     y = g.loc[g.groupby("seed")["epoch"].idxmax()]["test_acc"].mean()
     ax.axhline(y, color=GRAY_M, ls="--", lw=1.0, zorder=0)
     ax.annotate("readout", (0.97, y), xycoords=("axes fraction", "data"),
                 xytext=(0, 2), textcoords="offset points", color=GRAY_D,
-                fontsize=6.5, ha="right")
+                fontsize=8, ha="right")
     ax.set_xlabel("fraction of connections kept")
     ax.set_ylabel("final test accuracy")
     ax.set_xticks([.1, .3, .5, .7])
@@ -200,7 +200,7 @@ def fig_pareto_exp3():
     f["frac"] = f["full_steps"] / f["step"]
     s = f.groupby("variant").agg(val=("val_loss", "mean"),
                                  sd=("val_loss", "std"), frac=("frac", "mean"))
-    fig, ax = plt.subplots(figsize=(4.6, 2.9))
+    fig, ax = plt.subplots(figsize=(5.2, 3.3))
     for fam, color, lab, (li, dx, dy, ha) in [
             ("periodic", RED, "periodic-N", (3, -2, 6, "right")),
             ("lpft", AQUA, "LP-FT", (2, 0, -10, "center"))]:
@@ -210,7 +210,7 @@ def fig_pareto_exp3():
         ax.errorbar(x, y, yerr=e, color=color, marker="o", ms=3.5, capsize=2,
                     elinewidth=0.8)
         ax.annotate(lab, (x[li], y[li]), xytext=(dx, dy),
-                    textcoords="offset points", color=color, fontsize=7, ha=ha)
+                    textcoords="offset points", color=color, fontsize=8.5, ha=ha)
     fws = f[f.variant.isin(["fw_tau0005", "fw_tau002", "fw_tau005"])]
     fx, fy = fws.frac.mean(), fws.val_loss.mean()
     ax.errorbar([fx], [fy], yerr=[[fy - fws.val_loss.min()],
@@ -218,7 +218,7 @@ def fig_pareto_exp3():
                 color=BLUE, marker="D", ms=5.5, ls="none", capsize=2.5,
                 elinewidth=0.9)
     ax.annotate("FW (default)", (fx, fws.val_loss.min()), xytext=(-2, -13),
-                textcoords="offset points", color=BLUE, fontsize=7,
+                textcoords="offset points", color=BLUE, fontsize=8.5,
                 ha="center", fontweight="bold")
     # governor dial: max_cooldown sweep at tau=0.1 traces the Pareto curve
     gov = f[f.variant.str.contains("gov|lever01")]
@@ -233,14 +233,14 @@ def fig_pareto_exp3():
     ax.errorbar(gx, gy, yerr=ge, color=BLUE, marker="D", ms=3, capsize=2,
                 elinewidth=0.7, lw=1.2, ls=(0, (4, 2)))
     ax.annotate("FW governor dial", (gx[-1], gy[-1]), xytext=(2, -11),
-                textcoords="offset points", color=BLUE, fontsize=7,
+                textcoords="offset points", color=BLUE, fontsize=8.5,
                 ha="right", fontweight="bold")
     b = s.loc["bcd"]
     ax.errorbar([b.frac], [b.val], yerr=[b.sd], color=VIOLET, marker="s",
                 ms=4, ls="none", capsize=2, elinewidth=0.8,
                 markerfacecolor="white")
     ax.annotate("BCD", (b.frac, b.val), xytext=(16, 10),
-                textcoords="offset points", color=VIOLET, fontsize=7,
+                textcoords="offset points", color=VIOLET, fontsize=8.5,
                 arrowprops=dict(arrowstyle="-", color=VIOLET, lw=0.6,
                                 shrinkA=1, shrinkB=3))
     for v, ls, lab, (xf, ha) in [("full", "--", "full BP (100%)", (0.02, "left")),
@@ -249,7 +249,7 @@ def fig_pareto_exp3():
         ax.axhline(r.val, color=GRAY_M, ls=ls, lw=1.0, zorder=0)
         ax.annotate(lab, (xf, r.val), xycoords=("axes fraction", "data"),
                     xytext=(0, 2), textcoords="offset points", color=GRAY_D,
-                    fontsize=6.5, ha=ha)
+                    fontsize=8, ha=ha)
     ax.set_xscale("log")
     ax.set_xticks([.02, .05, .1, .2, .5])
     ax.set_xticklabels(["2%", "5%", "10%", "20%", "50%"])
@@ -262,10 +262,49 @@ def fig_pareto_exp3():
     plt.close(fig)
 
 
+def fig_schematic():
+    """Figure 1: FW's actual behavior on the transformer (seed 0)."""
+    df = pd.read_csv(os.path.join(RES, "exp3_char", "exp3_fw_s0_tau002.csv"))
+    bursts = []
+    prev = 0
+    for _, r in df.iterrows():
+        if r.full_steps != prev:
+            bursts.append((r.step - 250, r.full_steps - prev))
+            prev = r.full_steps
+    fig, ax = plt.subplots(figsize=(6.5, 2.8))
+    ax.plot(df.step, df.train_loss_ema, color=GRAY_D, lw=1.6)
+    for i, (b0, n) in enumerate(bursts):
+        ax.axvspan(b0, b0 + 2 * n, color=BLUE, alpha=0.8, lw=0)
+    for (a0, _), (b0, _), y in [(bursts[3], bursts[4], 2.02),
+                                (bursts[4], bursts[5], 1.87)]:
+        ax.annotate("", (b0, y), (a0 + 100, y),
+                    arrowprops=dict(arrowstyle="<->", color=GRAY_M, lw=0.8))
+    ax.annotate("bursts of $B{=}50$ full-BP steps\nfire at plateaus",
+                (bursts[2][0] + 50, 2.35), xytext=(1600, 2.45),
+                textcoords="data", color=BLUE, fontsize=9,
+                fontweight="bold", ha="left",
+                arrowprops=dict(arrowstyle="-", color=BLUE, lw=0.7,
+                                shrinkB=2))
+    ax.annotate("backoff stretches the gaps\n(cap $\\kappa_{max}$ = budget dial)",
+                (2450, 2.02), color=GRAY_D, fontsize=9)
+    ax.annotate("all other steps: front only\n(backward through 2 of 7 matrices)",
+                (3200, 1.80), color=GRAY_D, fontsize=9)
+    ax.set_xlabel("training step")
+    ax.set_ylabel("training loss (EMA)")
+    ax.set_title("FW on the transformer (seed 0): 6% of steps at full depth",
+                 loc="left", pad=10)
+    ax.set_xlim(0, 5100)
+    ax.set_ylim(1.6, 2.75)
+    fig.tight_layout()
+    fig.savefig(os.path.join(OUT, "fw_schematic.pdf"))
+    plt.close(fig)
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     fig_exp1()
     fig_pareto()
     fig_sparsity()
     fig_pareto_exp3()
+    fig_schematic()
     print("wrote", sorted(os.listdir(OUT)))

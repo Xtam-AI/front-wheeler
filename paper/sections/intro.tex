@@ -1,7 +1,8 @@
 \section{Introduction}
 
-A full backward pass costs roughly twice the forward pass, must store
-activations to full depth, and touches every parameter on every step. Much of
+A full backward pass costs roughly twice the forward pass
+\citep{kaplan2020scaling}, must store activations to full depth, and
+touches every parameter on every step. Much of
 that work may be wasted: late layers can be updated by backpropagating
 through only the final two weight matrices, and for long stretches of
 training those cheap updates are all that is improving the loss. The question
@@ -9,7 +10,7 @@ is \emph{when} the network actually needs deep credit assignment---and
 whether that decision can be made online, from signals training already
 produces.
 
-We propose \fw{} (\emph{front wheeler}). By default every step is a
+We propose \fw{} (\emph{Front Wheeler}). By default every step is a
 \emph{front} step: the trunk runs forward without building a graph, and only
 the last hidden layer and readout are updated. A plateau detector watches an
 EMA of the training loss; when improvement stalls, \fw{} fires a \emph{burst}
@@ -21,13 +22,27 @@ closed-loop controller---a cost-aware Gauss--Southwell rule over
 \emph{nested} parameter blocks, where each burst doubles as a measurement of
 whether depth is still worth paying for (Section~\ref{sec:framework}).
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{fw_schematic}
+\caption{\fw{} in action (transformer, seed 0; real run, not a
+schematic): training-loss EMA with full-BP bursts (blue bands, width
+exaggerated $2\times$ for visibility) firing when the loss plateaus. The
+backoff stretches the gaps between bursts as training saturates; its cap
+$\kappa_{\max}$ is the budget dial of
+Section~\ref{sec:exp3}. All remaining steps back-propagate through only
+the last block and head.}
+\label{fig:schematic}
+\end{figure}
+
 \paragraph{Contributions.} On MLPs (MNIST, CIFAR-10) and a 10.8M-parameter
 character-level transformer, three seeds throughout:
 \begin{enumerate}
   \item \textbf{Adaptive bursts beat or match every fixed alternative at
   low budget.}
-  At a matched ${\sim}4$--$5\%$ full-backprop budget, \fw{} beats periodic
-  schedules by $+1.5$ (MNIST) and $+5.1$ (CIFAR-10) points and one-switch
+  At a matched ${\sim}4$--$5\%$ full-backprop budget, \fw{} beats
+  \textsc{periodic}-$N$ schedules (one full step every $N$th step) by
+  $+1.5$ (MNIST) and $+5.1$ (CIFAR-10) points and one-switch
   \lpft{} \citep{kumar2022finetuning} by $+2.0$ and $+6.1$---margins that
   \emph{grow} with task difficulty, and that survive the worst rather than
   best trigger threshold. On the transformer, \fw{} spending ${\sim}6\%$ of
@@ -35,8 +50,8 @@ character-level transformer, three seeds throughout:
   family (\fw{} and its \bcd{} ablation) improves at low budget on never
   back-propagating deep at all. The backoff cap doubles as a \emph{budget
   dial}: one parameter traces a monotone Pareto curve ($6$--$49\%$
-  budgets) dominating \lpft{} and periodic at every tested budget on the
-  transformer. A progressive-freezing ratchet \citep{brock2017freezeout,
+  budgets) dominating \lpft{} and \textsc{periodic}-$N$ at every tested
+  budget on the transformer. A progressive-freezing ratchet \citep{brock2017freezeout,
   liu2021autofreeze} ties \fw{} on MNIST at matched backward compute, but
   its freeze timing is task-critical and irrevocable: the same setting is
   catastrophic on the transformer, while \fw{} runs identical trigger
@@ -44,10 +59,11 @@ character-level transformer, three seeds throughout:
   (Section~\ref{sec:controls}): a deep-first schedule owns both the best
   cheap stationary cell (at the right budget) and the worst cell in the
   study (at \fw{}'s budget), and falls to the never-deep floor under a
-  mid-training distribution shift, while an oracle-period clock ties or
-  slightly trails \fw{} everywhere---bursts carry the performance; the
-  trigger's product is finding the schedule without the oracle, and
-  robustness when assumptions break.
+  mid-training distribution shift, while a fixed-cadence clock, its period
+  set with hindsight from \fw{}'s own discovered budget, ties or slightly
+  trails \fw{} everywhere---bursts carry the performance; the trigger's
+  product is finding the schedule without that hindsight, and robustness
+  when assumptions break.
   \item \textbf{Isolated deep steps are dangerous; bursts make them safe.}
   Full-depth steps sprinkled one at a time into cheap training collapse MLPs
   (dead-ReLU cascade driven by error signals from a co-adapted head, measured
