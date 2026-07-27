@@ -11,8 +11,7 @@ follow the protocol of Section~\ref{sec:framework}; the complete population
 of results at every budget is Table~\ref{tab:exp2}
 (Appendix~\ref{app:tables}).
 
-\paragraph{Question 1: at a matched low budget, do adaptive bursts beat
-fixed schedules?} The claim under test is that \emph{when} deep steps are
+\paragraph{Adaptive bursts at a matched low budget.} The claim under test is that \emph{when} deep steps are
 spent matters at scarce budgets. At the ${\sim}4$--$5\%$ deep-step tier,
 the strongest fixed schedules reach $95.7$ (MNIST, \lpft{}($0.95$)) and
 $47.1$ (CIFAR-10); \fw{} reaches $97.1$ and $51.6$ at its best threshold,
@@ -47,7 +46,7 @@ from MNIST to CIFAR-10.}
 \label{fig:pareto-cifar}
 \end{figure}
 
-\paragraph{Question 2: why do interleaved fixed schedules fail?} Without
+\paragraph{Why interleaved fixed schedules fail.} Without
 gradient clipping, periodic interleaving collapsed to chance within the
 first epoch on all three seeds at $N \in \{20, 50\}$, and on one of three
 seeds at $N{=}10$: the front-trained, increasingly confident head
@@ -63,7 +62,7 @@ issue under SGD; Section~\ref{sec:exp3} shows that under Adam it does not,
 which is where the schedule's interaction with the optimizer becomes the
 story.
 
-\paragraph{Question 3: is the block choice the active ingredient?} \bcd{}
+\paragraph{The block choice is not the active ingredient.} \bcd{}
 shares \fw{}'s closed-loop trigger but spends bursts on the complementary
 block (trunk only, head frozen). It ties \fw{} on MNIST ($97.2$ vs.\
 $97.1$) and trails by $1.1$ points on CIFAR-10. The scheduling mechanism
@@ -72,7 +71,7 @@ a modest gain only on the harder task. Note that \bcd{} bursts cannot be
 made cheap (Section~\ref{sec:framework}): only the nested scheme converts
 its cheap phase into compute savings.
 
-\paragraph{Question 4: how does \fw{} compare to progressive freezing?}
+\paragraph{Against progressive freezing.}
 The \textsc{ratchet} baseline is compared in backward compute, since its
 per-step cost varies as layers freeze (its deep-step column is not
 comparable; see the protocol). At matched compute, \textsc{ratchet}($0.1$)

@@ -16,7 +16,7 @@ MLP configuration unchanged. Metric: validation loss (lower is better);
 cost: backward compute as a fraction of \textsc{full}'s. The complete
 population is Table~\ref{tab:exp3matrix} (Appendix~\ref{app:tables}).
 
-\paragraph{Question 1: does the low-budget result transfer?} The claim is
+\paragraph{The low-budget result transfers.} The claim is
 that \fw{}'s matched-budget advantage is not an SGD/MLP artifact.
 \textsc{full} reaches $1.488 \pm 0.008$ and \textsc{front} $1.836 \pm
 0.004$; \fw{} at a $6\%$ deep-step budget ($22\%$ backward compute) reaches
@@ -44,7 +44,7 @@ front-only line where one-switch and periodic schedules do not reach.}
 \label{fig:exp3pareto}
 \end{figure}
 
-\paragraph{Question 2: is there a budget dial?} Sweeping the trigger
+\paragraph{The governor is the budget dial.} Sweeping the trigger
 threshold $\tau$ across two orders of magnitude ($0.005 \to 1.0$) with the
 governor active barely moves the operating point: the backoff cancels eager
 alarms and the budget stays pinned at $6$--$9\%$ of steps---the threshold
@@ -59,7 +59,7 @@ the trigger. (On the CIFAR-10 MLP the dial's high-budget endpoint, a sweep
 not reported in Section~\ref{sec:exp2}, is comparable to but does not beat
 the best fixed $50\%$ schedules: $53.8$ vs.\ $54.2$ for \lpft{}.)
 
-\paragraph{Question 3: is the freezing ratchet's strength robust?} At
+\paragraph{The freezing ratchet is strong but fragile.} At
 \fw{}'s exact backward-compute budget, \textsc{ratchet}($0.1$) collapses to
 $2.271 \pm 0.04$---worse than periodic---because it freezes five of six
 blocks before the trunk has learned anything, and a ratchet cannot
@@ -71,8 +71,7 @@ mid-budget regime. The pattern across testbeds is consistent: the ratchet's
 timing is task-critical and unrecoverable when wrong, whereas \fw{} ran
 identical trigger hyperparameters on every testbed in this paper.
 
-\paragraph{Question 4: does interleaving toxicity survive the optimizer
-change?} It worsens. Periodic interleaving is destructive at every budget
+\paragraph{Interleaving toxicity worsens under Adam.} It worsens. Periodic interleaving is destructive at every budget
 tested---$1.87$ at $2\%$, worsening monotonically with interleaving
 frequency to $2.40 \pm 0.05$ at a $20\%$ budget, far worse than doing
 nothing deep---and it happens \emph{despite} gradient clipping, which cured
@@ -85,7 +84,7 @@ across gaps ($\beta_2 = 0.999$ means a 50-step burst refreshes only
 ${\sim}5\%$ of $v$), the schedule-induced analogue of the sparse-update
 pathology that motivates SparseAdam for embedding tables.
 
-\paragraph{Question 5: should optimizer state be episodic?}
+\paragraph{Episodic optimizer state.}
 Table~\ref{tab:optstate} is the decisive comparison, and it refined our
 hypothesis. \textsc{reset-warmup} \emph{rescues} periodic interleaving
 almost entirely ($2.05 \to 1.82$, from far worse than front-only to
@@ -135,7 +134,7 @@ two mid-training distribution shifts of different severity; complete
 numbers are Tables~\ref{tab:exp3matrix} and~\ref{tab:shift}
 (Appendix~\ref{app:tables}).
 
-\paragraph{Question 6: is deep-first enough on a stationary task?} Only if
+\paragraph{Deep-first and the fixed-cadence clock, stationary.} Only if
 its one parameter is guessed correctly. At \fw{}'s matched budget,
 \textsc{ftlp}($0.06$) is the worst cell in our study ($2.290 \pm 0.035$,
 far below \textsc{front}): $300$ full steps from initialization---before
@@ -149,7 +148,7 @@ $1.773 \pm 0.013$; $1.801 \pm 0.010$ with reset-warmup) though far from
 failure; note its period was set \emph{from \fw{}'s own discovered
 budget}---the clock is a hindsight-tuned baseline.
 
-\paragraph{Question 7: what happens when the data changes?} We switch the
+\paragraph{Two distribution shifts.} We switch the
 training corpus mid-run at a step the schedules are not told, placed
 mid-gap for \textsc{pburst}'s clock so it cannot be lucky: a \emph{mild}
 shift (tiny Shakespeare $\to$ War and Peace) and a \emph{harsh} one ($\to$
@@ -168,7 +167,7 @@ how well its frozen assumption happens to match the condition, and no
 tested condition moved \fw{} out of the top of the cheap field or below
 the \textsc{front} floor.
 
-\paragraph{Question 8: can the trigger be made shift-aware?} \fw{}'s
+\paragraph{A shift-aware trigger.} \fw{}'s
 documented weakness is that the backoff, stretched long by pre-shift
 saturation, delays post-shift re-escalation (mild shift: $12\%$ of the
 front-to-full gap recovered, vs.\ $18\%$ stationary). The repair is one
