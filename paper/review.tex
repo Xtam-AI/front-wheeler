@@ -1,0 +1,141 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\graphicspath{{figures/}}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{microtype}
+\usepackage[mathlines]{lineno}
+\usepackage{xcolor}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{caption}
+\usepackage[colorlinks=true,linkcolor=blue!60!black,citecolor=blue!60!black,urlcolor=blue!60!black]{hyperref}
+
+\newcommand{\ep}{\textsc{ep}}
+\newcommand{\dfa}{\textsc{dfa}}
+\newcommand{\rmhebb}{\textsc{rm-hebb}}
+\newcommand{\fw}{\textsc{fw}}
+\newcommand{\lpft}{\textsc{lp-ft}}
+\newcommand{\bcd}{\textsc{bcd}}
+\newcommand{\thh}{\theta_{\mathrm{h}}}
+\newcommand{\tht}{\theta_{\mathrm{t}}}
+
+% TODO alternative titles:
+%  "Front Wheeler: Plateau-Triggered Backpropagation"
+%  "Paying for Depth Only When It Pays: Adaptive Bursts of Backpropagation"
+\title{Front Wheeler: Training with Full Backpropagation\\
+Only When It Pays}
+
+\author{Mamdouh Alramadan\\
+XTAM Research Labs\\
+\texttt{research@xtam.ai}}
+
+\date{}
+
+\begin{document}
+\linenumbers
+\maketitle
+
+\begin{abstract}
+Backpropagating through every layer on every step is the single largest cost
+of training, yet most steps may not need deep credit assignment. We propose
+\emph{front wheeler} (\fw{}): by default, each step updates only the last
+hidden layer and the readout (backward through two weight matrices); a
+\emph{burst} of full-backpropagation steps fires only when a loss plateau
+signals that the cheap subspace is exhausted, with exponential backoff when a
+burst itself proves unproductive.
+
+On MLPs (MNIST, CIFAR-10), \fw{} at a
+${\sim}4\%$ full-backprop budget beats matched periodic schedules and
+one-switch linear-probe-then-fine-tune (\lpft{}) by margins that grow with
+task difficulty ($+1.5$ to $+6.1$ points). On a 10.8M-parameter transformer
+language model, \fw{} with ${\sim}6\%$ of steps at full depth matches
+\lpft{} spending $50\%$, and only the trigger-driven schedules improve at low budget on never
+back-propagating deep at all; a single backoff parameter further
+acts as a budget dial, tracing a monotone compute--quality curve
+($6$--$49\%$ budgets) that dominates one-switch and periodic schedules at
+every tested budget on the transformer. Under a mid-training distribution
+shift, \fw{} is the best cheap schedule, invariant to when the shift
+occurs, while the deep-first schedule that wins one stationary budget falls
+to the never-deep floor. Across all conditions the pattern is consistent:
+every fixed alternative is a bet on one assumption---a budget, a freeze
+time, a clock---and fails outright when it is wrong, on stationary tasks as
+much as shifted ones; \fw{}, with one configuration throughout, is never
+worse than second-best among cheap schedules and never fails. Three mechanism findings accompany the
+method: (i) \emph{isolated} full-depth steps interleaved with cheap steps
+are actively destructive---collapsing MLPs via dead units and degrading the
+transformer monotonically with interleaving frequency---and burst structure
+is what makes deep steps safe; (ii) under Adam the damage persists despite
+gradient clipping, since Adam's scale-invariant updates neutralize
+clipping; \fw{}'s burst structure protects it organically, which unlocks a
+purely \emph{episodic} optimizer---trunk moment estimates discardable
+between bursts at no quality cost, a systems win rather than a convergence
+requirement; (iii) a block-coordinate ablation shows the
+closed-loop trigger, not the block structure, carries most of the benefit.
+Experiments are small-scale by design; we characterize the schedule, not the
+state of the art.
+\end{abstract}
+
+\input{sections/intro}
+\input{sections/glossary}
+\input{sections/related}
+\input{sections/framework}
+\input{sections/exp2}
+\input{sections/exp3}
+\input{sections/discussion}
+
+\section*{Acknowledgments}
+This work was carried out at XTAM Research Labs. Transparency about tooling:
+this work was AI-assisted (Anthropic's Claude---Claude Code, Claude Fable
+5---for implementation, experiment orchestration, debugging, and drafting),
+under the direction and review of the author. All results were produced by
+the released code, and every reported number was checked against the raw run
+logs in the repository.
+
+\bibliographystyle{unsrtnat}
+\bibliography{refs}
+
+\appendix
+
+\input{sections/exp1}
+
+\section{Experimental infrastructure}
+\label{app:infra}
+All experiments ran on a single workstation: one NVIDIA RTX PRO 6000
+Blackwell (96\,GB), 64 CPU cores, 256\,GB RAM; PyTorch 2.13 / CUDA~13 in a
+micromamba environment. The complete experimental suite---both MLP studies,
+the transformer study, and all ablations and sweeps, three seeds
+throughout---consumes under ten GPU-hours end to end. Datasets: MNIST
+\citep{lecun1998gradient}, CIFAR-10 \citep{krizhevsky2009learning}, and the
+tiny Shakespeare corpus. Exact commands for every run are recorded in the
+repository's \texttt{scripts/} directory; per-run CSV logs (including
+wall-clock times) are in \texttt{results/}.
+
+\section{Two failure modes of mask-search rules}
+\label{app:failures}
+
+\paragraph{The sign factor in straight-through mask gradients.} Selecting the
+top-$k$ mask by $|s|$ while passing the straight-through gradient to $s$
+directly drops the $\partial|s|/\partial s = \operatorname{sign}(s)$ factor;
+every negative-score synapse then moves in the wrong direction, and learning
+sits at chance. Applying $|\cdot|$ \emph{before} the straight-through
+operator (so autodiff supplies the sign), or equivalently multiplying manual
+updates by $\operatorname{sign}(s)$, restores learning entirely. We flag this
+because the failure is silent: losses hover near initialization and no error
+is raised.
+
+\paragraph{Hebbian runaway and its stabilization.} A naive three-factor rule
+diverges here: with ReLU activity the eligibility $a_i x_j$ is non-negative,
+so reinforced co-activations grow activations, which grow eligibilities,
+until logits saturate (magnitudes ${>}10^2$ within 200 steps), the softmax
+collapses to one-hot, exploration dies, and accuracy pins at chance.
+Batch-centered (covariance) eligibilities, RMS-normalized per-layer updates,
+and a loss-based rather than sampled-action reward stabilize it; the
+stabilized rule learns but remains far below the vector-signal rules.
+
+\end{document}

@@ -18,3 +18,5 @@ paper/*.synctex.gz
 
 # os
 .DS_Store
+paper/review.pdf
+paper/review.aux
