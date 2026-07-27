@@ -55,18 +55,22 @@ ${\sim}4\%$ full-backprop budget beats matched periodic schedules and
 one-switch linear-probe-then-fine-tune (\lpft{}) by margins that grow with
 task difficulty ($+1.5$ to $+6.1$ points). On a 10.8M-parameter transformer
 language model, \fw{} with ${\sim}6\%$ of steps at full depth matches
-\lpft{} spending $50\%$, and only the trigger-driven schedules improve at low budget on never
-back-propagating deep at all; a single backoff parameter further
+\lpft{} spending $50\%$, and at low budget only burst-structured schedules meaningfully improve on
+never back-propagating deep at all; a single backoff parameter further
 acts as a budget dial, tracing a monotone compute--quality curve
 ($6$--$49\%$ budgets) that dominates one-switch and periodic schedules at
-every tested budget on the transformer. Under a mid-training distribution
-shift, \fw{} is the best cheap schedule, invariant to when the shift
-occurs, while the deep-first schedule that wins one stationary budget falls
-to the never-deep floor. Across all conditions the pattern is consistent:
+every tested budget on the transformer. Under two mid-training distribution shifts of different severity, \fw{}
+is the best cheap schedule, invariant to when the shift occurs; a one-line
+\emph{shift-aware governor reset} repairs its one documented weakness
+(delayed re-escalation), making it the best cheap schedule under the
+harshest condition we test. Across all conditions the pattern is consistent:
 every fixed alternative is a bet on one assumption---a budget, a freeze
 time, a clock---and fails outright when it is wrong, on stationary tasks as
-much as shifted ones; \fw{}, with one configuration throughout, is never
-worse than second-best among cheap schedules and never fails. Three mechanism findings accompany the
+much as shifted ones; \fw{}, with one configuration throughout, is first or second among
+cheap schedules at every low-budget and shifted condition, never falls
+below the never-deep floor at any tested budget, and cedes only the
+stationary mid-budget band---to schedules whose required timing is
+catastrophic elsewhere. Three mechanism findings accompany the
 method: (i) \emph{isolated} full-depth steps interleaved with cheap steps
 are actively destructive---collapsing MLPs via dead units and degrading the
 transformer monotonically with interleaving frequency---and burst structure
@@ -75,8 +79,9 @@ it under SGD but not under Adam, whose scale-invariant updates neutralize
 clipping; \fw{}'s burst structure protects it organically, which unlocks a
 purely \emph{episodic} optimizer---trunk moment estimates discardable
 between bursts at no quality cost, a systems win rather than a convergence
-requirement; (iii) a block-coordinate ablation shows the
-closed-loop trigger, not the block structure, carries most of the benefit.
+requirement; (iii) ablations localize the benefit to burst \emph{timing} rather than
+block structure; the closed loop's contribution is discovering the schedule
+without hindsight, and robustness when assumptions break.
 Experiments are small-scale by design; we characterize the schedule, not the
 state of the art.
 \end{abstract}
@@ -102,6 +107,8 @@ logs in the repository.
 \appendix
 
 \input{sections/glossary}
+
+\input{sections/appendix_tables}
 
 \input{sections/exp1}
 
