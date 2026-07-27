@@ -41,9 +41,9 @@ vast majority of steps.
 
 \paragraph{What we do not claim.} All experiments are small (MLPs; a 10.8M
 transformer on 1MB of text) with three seeds; absolute numbers are far from
-competitive by design. We have not tested \fw{} at scale, under distribution
-shift, with pretrained initializations, or against learned-schedule
-baselines; the front was always the topmost block, and other cheap subspaces
+competitive by design. We have not tested \fw{} at scale, with pretrained initializations,
+under shifts harsher than the single mild corpus switch of
+Section~\ref{sec:controls}, or against learned-schedule baselines; the front was always the topmost block, and other cheap subspaces
 (low-rank, sparse) are untested. We also compare schedules for a
 \emph{fixed} architecture and do not compare against training a
 proportionally smaller dense model at the same total FLOPs; \fw{}'s
@@ -76,10 +76,12 @@ study (deep-first, right budget) is also its worst cell (deep-first, wrong
 budget) and drops to the never-deep floor when the data changes. \fw{}'s
 answer---front steps by default, consecutive bursts when a plateau says the
 cheap subspace is exhausted, backoff when a burst reveals the plateau was
-global---carries no assumption to violate: one configuration, two
-architectures, two optimizers, stationary and shifted data, never worse
-than second-best among cheap schedules and never below the never-deep
-floor, at $20$--$25\%$ of full backprop's compute. Where schedules fail,
+global---hard-codes none of those timings: one configuration, two
+architectures, two optimizers, stationary and shifted data, first or second
+among cheap schedules at every low-budget and shifted condition, never
+below the never-deep floor at any tested budget, at $20$--$25\%$ of full
+backprop's compute---ceding only the stationary mid-budget band, to
+schedules whose required timing is catastrophic elsewhere. Where schedules fail,
 the failures localize to mechanisms we could measure (isolated-step churn,
 stale optimizer moments, irrevocable early commitments) and repair (bursts,
 episodic state, revocability). Credit assignment is a budgeted resource;
