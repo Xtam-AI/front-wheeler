@@ -44,8 +44,8 @@ notes/      historical planning notes (superseded by the paper)
 ## Quick start
 
 Requires Python ≥ 3.10, PyTorch ≥ 2.0, torchvision, numpy, pandas,
-matplotlib. Datasets (MNIST, CIFAR-10, tiny Shakespeare) download
-automatically on first use into `data/`.
+matplotlib. Datasets (MNIST, CIFAR-10, tiny Shakespeare, and the shift corpora)
+download automatically on first use into `data/`.
 
 ```bash
 # FW on the transformer

@@ -110,8 +110,8 @@ def _fetch(fname, url):
 
 def load_data(device, shift=False, corpus_b="alice"):
     """Returns (train_a, val_a, vocab) or, with shift, also (train_b, val_b):
-    corpus A = tiny Shakespeare; corpus B = alice (~150KB, overfit-prone) or
-    warpeace (~3MB), joint vocab."""
+    corpus A = tiny Shakespeare; corpus B = alice (~150KB, overfit-prone),
+    warpeace (~3MB), or code (sqlite3.c, first 3MB); joint vocab."""
     text_a = _fetch("tinyshakespeare.txt", SHAKESPEARE_URL)
     if not shift:
         chars = sorted(set(text_a))
