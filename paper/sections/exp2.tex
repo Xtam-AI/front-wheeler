@@ -89,7 +89,8 @@ Section~\ref{sec:framework}) comes in two settings---\textsc{ratchet}($0.1$)
 (all-but-front frozen by $10\%$ of training) and \textsc{ratchet}($0.3$)
 (by $30\%$)---and is compared in backward compute, since its per-step cost varies
 as layers freeze. At matched compute, \textsc{ratchet}($0.1$) exceeds \fw{} on MNIST
-consistently but not significantly ($97.3$ vs.\ $97.1$; positive in all
+consistently but not significantly ($97.3$---its own accuracy, not a
+Table~\ref{tab:exp2} entry---vs.\ \fw{}'s $97.1$; positive in all
 three seed pairings, $+0.22$ on average, within one seed-std; \textsc{ratchet}($0.3$) reaches $98.2$ at a
 third of full BP's FLOPs) and trails \fw{} on
 CIFAR-10 ($50.8$ vs.\ $51.6$ at matched FLOPs). We therefore do not claim
