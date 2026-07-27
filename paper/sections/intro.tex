@@ -25,13 +25,12 @@ whether depth is still worth paying for (Section~\ref{sec:framework}).
 \begin{figure}[t]
 \centering
 \includegraphics[width=\textwidth]{fw_schematic}
-\caption{\fw{} in action (transformer, seed 0; real run, not a
-schematic): training-loss EMA with full-BP bursts (blue bands, width
-exaggerated $2\times$ for visibility) firing when the loss plateaus. The
-backoff stretches the gaps between bursts as training saturates; its cap
-$\kappa_{\max}$ is the budget dial of
-Section~\ref{sec:exp3}. All remaining steps back-propagate through only
-the last block and head.}
+\caption{\fw{} in action (transformer, seed 0; a real run, not a
+schematic). Top: training-loss EMA. Bottom: the schedule---blue marks are
+bursts of $B{=}50$ full-BP steps, gray is front steps, and the numbers are
+the gap widths between bursts, stretched by the backoff as training
+saturates ($450 \to 700 \to 1700$); the backoff cap $\kappa_{\max}$ is
+the budget dial of Section~\ref{sec:exp3}.}
 \label{fig:schematic}
 \end{figure}
 

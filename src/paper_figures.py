@@ -269,34 +269,41 @@ def fig_schematic():
     prev = 0
     for _, r in df.iterrows():
         if r.full_steps != prev:
-            bursts.append((r.step - 250, r.full_steps - prev))
+            bursts.append(int(r.step) - 250)
             prev = r.full_steps
-    fig, ax = plt.subplots(figsize=(6.5, 2.8))
-    ax.plot(df.step, df.train_loss_ema, color=GRAY_D, lw=1.6)
-    for i, (b0, n) in enumerate(bursts):
-        ax.axvspan(b0, b0 + 2 * n, color=BLUE, alpha=0.8, lw=0)
-    for (a0, _), (b0, _), y in [(bursts[3], bursts[4], 2.02),
-                                (bursts[4], bursts[5], 1.87)]:
-        ax.annotate("", (b0, y), (a0 + 100, y),
-                    arrowprops=dict(arrowstyle="<->", color=GRAY_M, lw=0.8))
-    ax.annotate("bursts of $B{=}50$ full-BP steps\nfire at plateaus",
-                (bursts[2][0] + 50, 2.35), xytext=(1600, 2.45),
-                textcoords="data", color=BLUE, fontsize=9,
-                fontweight="bold", ha="left",
-                arrowprops=dict(arrowstyle="-", color=BLUE, lw=0.7,
-                                shrinkB=2))
-    ax.annotate("backoff stretches the gaps\n(cap $\\kappa_{max}$ = budget dial)",
-                (2450, 2.02), color=GRAY_D, fontsize=9)
-    ax.annotate("all other steps: front only\n(backward through 2 of 7 matrices)",
-                (3200, 1.80), color=GRAY_D, fontsize=9)
-    ax.set_xlabel("training step")
+    fig, (ax, axs) = plt.subplots(
+        2, 1, figsize=(6.5, 3.0), sharex=True,
+        gridspec_kw=dict(height_ratios=[3.2, 1], hspace=0.12))
+    ax.plot(df.step, df.train_loss_ema, color=GRAY_D, lw=1.8)
     ax.set_ylabel("training loss (EMA)")
+    ax.text(0.98, 0.92,
+            "trigger: loss plateau $\\rightarrow$ burst of $B{=}50$ full-BP steps\n"
+            "backoff: unproductive burst $\\rightarrow$ gap doubles "
+            "(cap $\\kappa_{\\max}$ = budget dial)",
+            transform=ax.transAxes, ha="right", va="top", fontsize=9,
+            color=GRAY_D, linespacing=1.5)
     ax.set_title("FW on the transformer (seed 0): 6% of steps at full depth",
-                 loc="left", pad=10)
-    ax.set_xlim(0, 5100)
-    ax.set_ylim(1.6, 2.75)
-    fig.tight_layout()
-    fig.savefig(os.path.join(OUT, "fw_schematic.pdf"))
+                 loc="left", pad=8)
+    # schedule strip: gray = front steps, blue ticks = bursts
+    axs.axhspan(0, 1, color=GRAY_L, alpha=0.45, lw=0)
+    for b in bursts:
+        axs.axvspan(b, b + 50, color=BLUE, lw=0)
+    for a, b in zip(bursts, bursts[1:]):
+        if b - a - 50 >= 300:
+            axs.annotate(f"{b - a - 50}", ((a + 50 + b) / 2, 0.5),
+                         ha="center", va="center", fontsize=8, color=GRAY_D)
+    axs.set_yticks([])
+    axs.set_ylim(0, 1)
+    axs.set_xlim(0, 5000)
+    axs.set_xlabel("training step")
+    axs.set_ylabel("schedule", rotation=0, ha="right", va="center",
+                   fontsize=9)
+    axs.grid(False)
+    axs.annotate("burst", (bursts[0] + 90, 0.5), color=BLUE, fontsize=8.5,
+                 ha="left", va="center", fontweight="bold")
+    axs.annotate("front steps", (4900, 0.5), color=GRAY_D, fontsize=8.5,
+                 ha="right", va="center")
+    fig.savefig(os.path.join(OUT, "fw_schematic.pdf"), bbox_inches="tight")
     plt.close(fig)
 
 
