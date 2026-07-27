@@ -90,6 +90,9 @@ length $B$; cooldown $\kappa \gets C$
     \EndIf
   \Else
     \State take a \textbf{front} step (backward through the front only)
+    \State \emph{(optional, shift-aware:)} \textbf{if} $\bar L$ jumps
+      above its running minimum \textbf{then} $\kappa \gets C$
+      \Comment{governor reset; \S\ref{sec:controls}}
     \If{$\ge \kappa$ front steps since the last burst, checked every $C$}
       \If{relative EMA improvement since the last check ${<}\tau$}
         \State start a burst of $B$ full steps

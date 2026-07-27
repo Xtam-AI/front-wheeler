@@ -61,7 +61,15 @@ trust-ratio update clipping as the Adam-compatible safety net. At scale, the
 memory argument sharpens---trunk optimizer state that exists only ${\sim}6\%$ of
 the time is a different systems regime---the front likely wants to be
 defined as a top fraction of layers rather than a fixed last block (so its
-share of capacity does not shrink with depth), and the natural next testbed
+share of capacity does not shrink with depth). Three sizing mechanisms
+suggest themselves: a static top-$N\%$ of blocks chosen so the front holds
+a fixed fraction of trainable parameters; an adaptive $N$ driven by the
+same plateau logic one level up (grow the front when plateaus persist even
+after bursts---a controller over the controller); or a split point chosen
+by per-block gradient norms, which is the Gauss--Southwell criterion of
+inequality~\eqref{eq:greedy} applied to the block boundary itself. Each
+preserves \fw{}'s property that the schedule, not the practitioner, makes
+the timing decisions. The natural next testbed
 is a pretrained model, where \fw{} becomes an adaptive fine-tuning
 schedule---a dynamic, closed-loop generalization of the static unfreezing
 choices in parameter-efficient fine-tuning---and \lpft{} is the one-switch
