@@ -1,10 +1,17 @@
-"""Experiment 3: front wheeler on a transformer (char-LM, tiny Shakespeare).
+"""Front Wheeler (FW) on a transformer (char-LM, tiny Shakespeare).
 
-Same question as exp2, real architecture: front steps update only the last
-transformer block + final LayerNorm + LM head (trunk forwarded under
-no_grad); full-BP bursts fire on loss-EMA plateau with backoff. The LM head
-is deliberately UNTIED from the token embedding so front steps cannot leak
-trunk updates through weight tying.
+Front steps update only the last transformer block + final LayerNorm + LM
+head (trunk forwarded under no_grad); full-BP bursts fire on loss-EMA
+plateau with backoff. The LM head is deliberately UNTIED from the token
+embedding so front steps cannot leak trunk updates through weight tying.
+
+Same schedule zoo as exp2 (see its docstring), plus:
+  --opt-state {persist,reset,reset-warmup,episodic}  trunk Adam state
+      across bursts (the "optimizer fires with the BP, gently" ablation)
+  --shift-at N --shift-corpus {alice,warpeace,code}  switch training corpus
+      mid-run (distribution shift; schedules are not told)
+  --governor-reset  reset the backoff cooldown when the loss EMA jumps
+      above its running minimum (shift-aware trigger)
 """
 import argparse
 import math

@@ -8,7 +8,7 @@ authors:
     email: research@xtam.ai
 repository-code: "https://github.com/XTAM-AI/front-wheeler"
 license: MIT
-date-released: "2026-07-24"
+date-released: "2026-07-27"
 preferred-citation:
   type: article
   title: "Front Wheeler: Training with Full Backpropagation Only When It Pays"

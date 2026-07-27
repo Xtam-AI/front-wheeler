@@ -1,3 +1,5 @@
+> **Historical note:** this is an early planning document, kept for transparency of process. It predates the paper's final thesis and results; where they disagree, the paper is authoritative.
+
 # FW vs alternating optimization (BCD) and LP-FT
 
 Setup: f(x) = head(trunk(x; th_t); th_h), th_h = last hidden + output

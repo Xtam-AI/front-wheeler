@@ -1,3 +1,5 @@
+> **Historical note:** this is an early planning document, kept for transparency of process. It predates the paper's final thesis and results; where they disagree, the paper is authoritative.
+
 # Paper outline (target: arXiv, before Sept 17)
 
 Working title ideas:

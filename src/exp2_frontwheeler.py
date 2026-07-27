@@ -1,20 +1,22 @@
-"""Experiment 2: front wheeler — minimize full backprop steps.
+"""Front Wheeler (FW) on MLPs — MNIST and CIFAR-10.
 
-Ordinary MLP on MNIST. Most steps are cheap "front" steps: forward the whole
-net without building a graph, then update ONLY the last hidden layer and the
-output projection (bounce between the final projection and the hidden layer
-right before it). While front steps keep improving the loss, keep bouncing.
-When improvement over a window drops below a threshold, pay for a burst of
-full-BP steps, then go back to bouncing.
+Most steps are cheap "front" steps: forward the whole net without a graph,
+update only the last hidden layer + output head. When a loss-EMA plateau is
+detected, pay for a burst of consecutive full-BP steps, with exponential
+backoff (capped by the governor kappa_max) when a burst is unproductive.
 
-Schedules compared (same net, same data order per seed):
-  full     full backprop every step (baseline).
-  front    front steps only, never full BP (lower bound; = deep readout).
-  periodic full BP every N-th step, front otherwise (fixed-budget control).
-  fw       adaptive front wheeler: plateau-triggered full-BP bursts.
+Schedules (parameters per the paper's protocol):
+  full      full backprop every step (anchor).
+  front     front steps only (anchor).
+  periodic  one full step every N steps.
+  lpft      front until fraction s of training, then full (one switch).
+  ftlp      reverse: full first, then front forever ("deep-first").
+  pburst    open-loop bursts on a fixed clock (no trigger).
+  bcd       FW's trigger, but bursts update the trunk only.
+  ratchet   progressive bottom-up freezing by fraction r of training.
+  fw        plateau-triggered bursts with backoff (the method).
 
-Cost metric: fraction of steps that ran full BP, plus estimated backward FLOPs
-(a front step back-propagates through 2 of the D weight matrices only).
+Cost axes: deep-step fraction and backward MACs (see backward_flops).
 """
 import argparse
 import os
